@@ -81,10 +81,8 @@ export const fileService = {
     };
   },
   
-  async downloadFolder(path: string): Promise<string[]> {
-    alert(`Folder download initiated for "${path}". A real app would provide a zip file.`);
-    console.log(`Preparing download for folder: ${path}`);
-    return api.get<string[]>(`/api/download-folder-list?path=${encodeURIComponent(path)}`);
+  downloadFolder(path: string): void {
+    window.location.href = `/api/download-folder?path=${encodeURIComponent(path)}`;
   },
 
   async getFolderTree(): Promise<TreeNodeData> {

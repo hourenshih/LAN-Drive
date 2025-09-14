@@ -1,4 +1,5 @@
 
+
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
@@ -139,24 +140,6 @@ async function handleGetFolderTree(res: ServerResponse) {
         children: await buildTree('/'),
     };
     jsonResponse(res, 200, tree);
-}
-
-async function handleGetFolderList(url: URL, res: ServerResponse) {
-    const dirPath = url.searchParams.get('path') || '/';
-    const allFiles: string[] = [];
-    async function collect(currentPath: string) {
-        const dirents = await fs.readdir(getSafePath(currentPath), { withFileTypes: true });
-        for (const dirent of dirents) {
-            const entryPath = path.posix.join(currentPath, dirent.name);
-            if (dirent.isDirectory()) {
-                await collect(entryPath);
-            } else {
-                allFiles.push(entryPath);
-            }
-        }
-    }
-    await collect(dirPath);
-    jsonResponse(res, 200, allFiles);
 }
 
 async function handleDelete(req: IncomingMessage, res: ServerResponse) {
@@ -371,6 +354,98 @@ async function handleCategorize(req: IncomingMessage, res: ServerResponse) {
     res.end();
 }
 
+async function handleDownloadFile(url: URL, res: ServerResponse) {
+    const filePath = url.searchParams.get('path');
+    if (!filePath) {
+        return errorResponse(res, 400, 'File path is required.');
+    }
+
+    try {
+        const safePath = getSafePath(filePath);
+        const stats = await fs.stat(safePath);
+
+        if (stats.isDirectory()) {
+            return errorResponse(res, 400, 'Cannot download a directory. Please use the folder download feature.');
+        }
+
+        const fileName = path.basename(safePath);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+        res.setHeader('Content-Length', stats.size);
+
+        const readStream = createReadStream(safePath);
+        readStream.pipe(res);
+        
+        readStream.on('error', (err) => {
+            console.error('Stream error:', err);
+            if (!res.headersSent) {
+                 errorResponse(res, 500, 'Error reading the file.');
+            }
+        });
+        
+    } catch (err: any) {
+        if (err.code === 'ENOENT') {
+            return errorResponse(res, 404, 'File not found.');
+        }
+        console.error(`Error downloading file ${filePath}:`, err);
+        if (!res.headersSent) {
+            errorResponse(res, 500, 'Internal server error while preparing download.');
+        }
+    }
+}
+
+async function handleDownloadFolder(url: URL, res: ServerResponse) {
+    const folderPath = url.searchParams.get('path');
+    if (!folderPath) {
+        return errorResponse(res, 400, 'Folder path is required.');
+    }
+
+    let archiver: any;
+    try {
+        archiver = require('archiver');
+    } catch (err) {
+        console.error("The 'archiver' library is not available. Cannot download folder as zip.");
+        return errorResponse(res, 503, "Server is not configured for folder downloads.");
+    }
+
+    try {
+        const safePath = getSafePath(folderPath);
+        const stats = await fs.stat(safePath);
+
+        if (!stats.isDirectory()) {
+            return errorResponse(res, 400, 'Path is not a directory.');
+        }
+
+        const folderName = path.basename(safePath);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${folderName}.zip"`);
+
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        archive.on('error', (err: any) => {
+            console.error(`Archive error for ${folderPath}:`, err);
+        });
+        
+        res.on('close', () => {
+            archive.destroy();
+        });
+
+        archive.pipe(res);
+        archive.directory(safePath, false);
+        await archive.finalize();
+
+    } catch (err: any) {
+        if (err.code === 'ENOENT') {
+            return errorResponse(res, 404, 'Folder not found.');
+        }
+        console.error(`Error zipping folder ${folderPath}:`, err);
+        if (!res.headersSent) {
+            errorResponse(res, 500, 'Internal server error while zipping folder.');
+        }
+    }
+}
+
+
 // --- VITE PLUGIN ---
 
 export function fsPlugin(): Plugin {
@@ -391,7 +466,7 @@ export function fsPlugin(): Plugin {
                         case '/api/upload': return await handleUpload(req, res);
                         case '/api/create-folder': return await handleCreateFolder(req, res);
                         case '/api/folder-tree': return await handleGetFolderTree(res);
-                        case '/api/download-folder-list': return await handleGetFolderList(url, res);
+                        case '/api/download-folder': return await handleDownloadFolder(url, res);
                         case '/api/delete': return await handleDelete(req, res);
                         case '/api/copy': return await handleCopy(req, res);
                         case '/api/move': return await handleMove(req, res);
@@ -399,6 +474,7 @@ export function fsPlugin(): Plugin {
                         case '/api/compress': return await handleCompress(req, res);
                         case '/api/decompress': return await handleDecompress(req, res);
                         case '/api/categorize': return await handleCategorize(req, res);
+                        case '/api/download-file': return await handleDownloadFile(url, res);
                         default:
                             errorResponse(res, 404, 'API endpoint not found.');
                     }

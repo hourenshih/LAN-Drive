@@ -94,13 +94,11 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     }
   };
 
-  const downloadFolder = async (path: string) => {
+  const downloadFolder = (path: string) => {
     try {
-        const filesToDownload = await fileService.downloadFolder(path);
-        alert(`Folder download started for "${path}". A real app would zip ${filesToDownload.length} file(s). See console for details.`);
-        console.log('Files included in folder download:', filesToDownload);
+        fileService.downloadFolder(path);
     } catch (err) {
-        setError('Failed to prepare folder for download.');
+        setError('Failed to start folder download.');
         console.error(err);
     }
   };

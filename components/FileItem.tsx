@@ -47,8 +47,7 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDo
   
   const handleDownload = (e: React.MouseEvent) => {
       e.stopPropagation();
-      alert(`Downloading ${entry.name}... (mock)`);
-      console.log(`Initiating download for ${entry.path}`);
+      window.location.href = `/api/download-file?path=${encodeURIComponent(entry.path)}`;
   };
 
   const handleFolderDownload = (e: React.MouseEvent) => {
