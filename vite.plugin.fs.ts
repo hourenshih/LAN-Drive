@@ -2,7 +2,7 @@ import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { FileType, FileEntry, TreeNodeData } from './src/types';
+import { FileType, FileEntry, TreeNodeData } from './types';
 
 const FILES_ROOT = path.resolve(process.cwd(), 'files');
 
