@@ -7,7 +7,7 @@ interface ActionBarProps {
   onCopy: () => void;
   onClearSelection: () => void;
   onRename: () => void;
-  onCompress: () => void;
+  onDownload: () => void;
   onCategorize: () => void;
 }
 
@@ -21,7 +21,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; c
     </button>
 );
 
-const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onCompress, onCategorize }) => {
+const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload, onCategorize }) => {
   return (
     <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-3 my-4 flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-in-out">
       <div className="flex items-center space-x-4">
@@ -55,17 +55,17 @@ const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, 
           </svg>
           Copy
         </ActionButton>
+        <ActionButton onClick={onDownload}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          Download
+        </ActionButton>
          <ActionButton onClick={onCategorize}>
            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
            </svg>
           Categorize
-        </ActionButton>
-        <ActionButton onClick={onCompress}>
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10.5 11.25h3M12 3v.75M3 7.5h18M3 7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5" />
-           </svg>
-          Compress
         </ActionButton>
         <button
           onClick={onDelete}

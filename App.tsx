@@ -37,7 +37,7 @@ const App: React.FC = () => {
     copySelectedEntries,
     moveSelectedEntries,
     renameEntry,
-    compressSelectedEntries,
+    downloadSelectedEntries,
     decompressEntry,
     categorizeSelectedEntries,
   } = useFileBrowser('/', searchQuery);
@@ -88,12 +88,6 @@ const App: React.FC = () => {
     if (!entryToRename || !newName) return;
     await renameEntry(entryToRename.path, newName);
     folderTreeHook.refreshTree();
-  };
-  
-  const handleCompress = () => {
-    if (window.confirm(`Are you sure you want to compress ${selectedEntries.size} item(s) into an archive?`)) {
-      compressSelectedEntries();
-    }
   };
 
   const handleCategorize = () => {
@@ -257,7 +251,7 @@ const App: React.FC = () => {
                   onCopy={handleCopy}
                   onClearSelection={clearSelection}
                   onRename={() => setIsRenameModalOpen(true)}
-                  onCompress={handleCompress}
+                  onDownload={downloadSelectedEntries}
                   onCategorize={handleCategorize}
                 />
               ) : null}

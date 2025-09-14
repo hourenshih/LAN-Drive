@@ -146,7 +146,7 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
   const copySelectedEntries = (dest: string) => performAction(() => fileService.copyEntries(Array.from(selectedEntries), dest), 'Failed to copy items.');
   const moveSelectedEntries = (dest: string) => performAction(() => fileService.moveEntries(Array.from(selectedEntries), dest), 'Failed to move items.');
   const renameEntry = (path: string, newName: string) => performAction(() => fileService.renameEntry(path, newName), 'Failed to rename item.');
-  const compressSelectedEntries = () => performAction(() => fileService.compressEntries(Array.from(selectedEntries), currentPath), 'Failed to compress items.');
+  const downloadSelectedEntries = () => fileService.downloadEntries(Array.from(selectedEntries));
   const decompressEntry = (path: string) => performAction(() => fileService.decompressEntry(path), 'Failed to decompress item.');
   const categorizeSelectedEntries = () => performAction(() => fileService.categorizeEntries(Array.from(selectedEntries), currentPath), 'Failed to categorize items.');
 
@@ -171,7 +171,7 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     copySelectedEntries,
     moveSelectedEntries,
     renameEntry,
-    compressSelectedEntries,
+    downloadSelectedEntries,
     decompressEntry,
     categorizeSelectedEntries,
   };

@@ -85,6 +85,12 @@ export const fileService = {
     window.location.href = `/api/download-folder?path=${encodeURIComponent(path)}`;
   },
 
+  downloadEntries(paths: string[]): void {
+    const url = new URL('/api/download-multiple', window.location.origin);
+    paths.forEach(p => url.searchParams.append('path', p));
+    window.location.href = url.toString();
+  },
+
   async getFolderTree(): Promise<TreeNodeData> {
     return api.get<TreeNodeData>('/api/folder-tree');
   },
@@ -103,10 +109,6 @@ export const fileService = {
 
   async renameEntry(entryPath: string, newName: string): Promise<void> {
     await api.post('/api/rename', { entryPath, newName });
-  },
-
-  async compressEntries(paths: string[], currentPath: string): Promise<void> {
-    await api.post('/api/compress', { paths, currentPath });
   },
   
   async decompressEntry(path: string): Promise<void> {

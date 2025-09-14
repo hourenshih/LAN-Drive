@@ -194,85 +194,6 @@ async function handleRename(req: IncomingMessage, res: ServerResponse) {
     res.end();
 }
 
-async function handleCompress(req: IncomingMessage, res: ServerResponse) {
-    const { paths, currentPath } = await readBody(req);
-    if (!paths || !Array.isArray(paths) || paths.length === 0) {
-        return errorResponse(res, 400, 'Invalid request body');
-    }
-
-    // Naming logic: use original name for single file, 'Archive.zip' for multiple.
-    let archiveName: string;
-    if (paths.length === 1) {
-        const baseName = path.basename(paths[0]);
-        const ext = path.extname(baseName);
-        archiveName = ext ? baseName.replace(ext, '.zip') : `${baseName}.zip`;
-    } else {
-        archiveName = 'Archive.zip';
-    }
-
-    // Handle potential name conflicts by adding a number, e.g., 'Archive (1).zip'.
-    let finalArchiveName = archiveName;
-    let destPath = getSafePath(path.join(currentPath, finalArchiveName));
-    let i = 1;
-    while (true) {
-        try {
-            await fs.access(destPath);
-            const ext = path.extname(archiveName);
-            const base = archiveName.replace(ext, '');
-            finalArchiveName = `${base} (${i++})${ext}`;
-            destPath = getSafePath(path.join(currentPath, finalArchiveName));
-        } catch {
-            break; // A suitable name has been found.
-        }
-    }
-    
-    let archiver: any;
-    try {
-        archiver = require('archiver');
-    } catch (err) {
-        archiver = null;
-    }
-
-    if (!archiver) {
-        console.error("The 'archiver' library is not available. Using placeholder for compression.");
-        await fs.writeFile(destPath, "This is a placeholder. Real compression requires the 'archiver' library.");
-        res.statusCode = 204;
-        res.end();
-        return;
-    }
-
-    try {
-        const output = createWriteStream(destPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
-
-        await new Promise<void>((resolve, reject) => {
-            output.on('close', resolve);
-            archive.on('error', reject);
-            archive.pipe(output);
-
-            Promise.all(paths.map(async (p: string) => {
-                const sourcePath = getSafePath(p);
-                const stats = await fs.stat(sourcePath);
-                if (stats.isDirectory()) {
-                    archive.directory(sourcePath, path.basename(p));
-                } else {
-                    archive.file(sourcePath, { name: path.basename(p) });
-                }
-            })).then(() => {
-                archive.finalize();
-            }).catch(reject);
-        });
-
-        res.statusCode = 204;
-        res.end();
-    } catch (err) {
-        // Clean up partially created file if archiving fails
-        try { await fs.unlink(destPath); } catch (e) { /* ignore cleanup error */ }
-        throw err;
-    }
-}
-
-
 async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
     const { path: zipPath } = await readBody(req);
     if (!zipPath) return errorResponse(res, 400, 'Invalid request body');
@@ -445,6 +366,58 @@ async function handleDownloadFolder(url: URL, res: ServerResponse) {
     }
 }
 
+async function handleDownloadMultiple(url: URL, res: ServerResponse) {
+    const pathsToDownload = url.searchParams.getAll('path');
+    if (!pathsToDownload || pathsToDownload.length === 0) {
+        return errorResponse(res, 400, 'File/Folder paths are required.');
+    }
+
+    let archiver: any;
+    try {
+        archiver = require('archiver');
+    } catch (err) {
+        console.error("The 'archiver' library is not available. Cannot download multiple items as zip.");
+        return errorResponse(res, 503, "Server is not configured for this type of download.");
+    }
+
+    try {
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="Download.zip"`);
+
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        archive.on('error', (err: any) => {
+            console.error(`Archive error for multiple download:`, err);
+        });
+        
+        res.on('close', () => {
+            archive.destroy();
+        });
+
+        archive.pipe(res);
+        
+        const topLevelPaths = pathsToDownload.filter((p: string) => !pathsToDownload.some((other: string) => p.startsWith(other + '/') && p !== other));
+
+        for (const p of topLevelPaths) {
+            const sourcePath = getSafePath(p);
+            const stats = await fs.stat(sourcePath);
+            if (stats.isDirectory()) {
+                archive.directory(sourcePath, path.basename(p));
+            } else {
+                archive.file(sourcePath, { name: path.basename(p) });
+            }
+        }
+        
+        await archive.finalize();
+
+    } catch (err: any) {
+        console.error(`Error zipping multiple items:`, err);
+        if (!res.headersSent) {
+            errorResponse(res, 500, 'Internal server error while zipping items.');
+        }
+    }
+}
+
 
 // --- VITE PLUGIN ---
 
@@ -467,11 +440,11 @@ export function fsPlugin(): Plugin {
                         case '/api/create-folder': return await handleCreateFolder(req, res);
                         case '/api/folder-tree': return await handleGetFolderTree(res);
                         case '/api/download-folder': return await handleDownloadFolder(url, res);
+                        case '/api/download-multiple': return await handleDownloadMultiple(url, res);
                         case '/api/delete': return await handleDelete(req, res);
                         case '/api/copy': return await handleCopy(req, res);
                         case '/api/move': return await handleMove(req, res);
                         case '/api/rename': return await handleRename(req, res);
-                        case '/api/compress': return await handleCompress(req, res);
                         case '/api/decompress': return await handleDecompress(req, res);
                         case '/api/categorize': return await handleCategorize(req, res);
                         case '/api/download-file': return await handleDownloadFile(url, res);
