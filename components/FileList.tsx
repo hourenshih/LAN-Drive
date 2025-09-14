@@ -1,16 +1,29 @@
-
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { FileEntry } from '../types';
 import FileItem from './FileItem';
 
 interface FileListProps {
   entries: FileEntry[];
   isLoading: boolean;
+  selectedEntries: Set<string>;
   onNavigate: (path: string) => void;
   onDownloadFolder: (path: string) => void;
+  onToggleSelection: (path: string) => void;
+  onToggleSelectAll: () => void;
 }
 
-const FileList: React.FC<FileListProps> = ({ entries, isLoading, onNavigate, onDownloadFolder }) => {
+const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries, onNavigate, onDownloadFolder, onToggleSelection, onToggleSelectAll }) => {
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+        const numSelected = selectedEntries.size;
+        const numEntries = entries.length;
+        selectAllCheckboxRef.current.checked = numSelected === numEntries && numEntries > 0;
+        selectAllCheckboxRef.current.indeterminate = numSelected > 0 && numSelected < numEntries;
+    }
+  }, [selectedEntries, entries]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -33,14 +46,30 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, onNavigate, onD
 
   return (
     <div className="space-y-1">
-        <div className="hidden md:grid grid-cols-10 gap-4 p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b dark:border-gray-700">
-            <div className="col-span-4 pl-14">Name</div>
+        <div className="hidden md:grid grid-cols-10 gap-4 p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b dark:border-gray-700 items-center">
+            <div className="col-span-4 flex items-center">
+                <input
+                    ref={selectAllCheckboxRef}
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-4"
+                    onChange={onToggleSelectAll}
+                    aria-label="Select all items"
+                />
+                <span className="pl-14">Name</span>
+            </div>
             <div className="col-span-3">Date Modified</div>
             <div className="col-span-2 text-right">File Size</div>
             <div className="col-span-1"></div>
         </div>
         {entries.map(entry => (
-            <FileItem key={entry.path} entry={entry} onNavigate={onNavigate} onDownloadFolder={onDownloadFolder} />
+            <FileItem 
+              key={entry.path} 
+              entry={entry} 
+              isSelected={selectedEntries.has(entry.path)}
+              onNavigate={onNavigate} 
+              onDownloadFolder={onDownloadFolder}
+              onToggleSelection={onToggleSelection}
+            />
         ))}
     </div>
   );

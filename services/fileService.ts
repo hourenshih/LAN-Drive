@@ -27,6 +27,19 @@ const mockFileSystem: { [path: string]: FileEntry[] } = {
   ],
 };
 
+const getParentPath = (path: string): string => {
+    if (path === '/') return '/';
+    return path.substring(0, path.lastIndexOf('/')) || '/';
+}
+
+const findEntry = (path: string): FileEntry | undefined => {
+    const parentPath = getParentPath(path);
+    const parent = mockFileSystem[parentPath];
+    if (!parent) return undefined;
+    return parent.find(entry => entry.path === path);
+}
+
+
 const simulateDelay = <T,>(data: T): Promise<T> => {
     return new Promise(resolve => setTimeout(() => resolve(data), 500));
 }
@@ -56,14 +69,20 @@ export const fileService = {
     if (!mockFileSystem[path]) {
       mockFileSystem[path] = [];
     }
-    mockFileSystem[path].push(newEntry);
+    // Check for duplicates
+    const existingIndex = mockFileSystem[path].findIndex(f => f.name === newEntry.name);
+    if (existingIndex > -1) {
+        mockFileSystem[path][existingIndex] = newEntry; // Overwrite
+    } else {
+        mockFileSystem[path].push(newEntry);
+    }
     return simulateDelay(newEntry);
   },
 
   async createFolder(path: string, folderName: string): Promise<FileEntry> {
     console.log(`Creating folder "${folderName}" in path: ${path}`);
     const newFolderPath = `${path === '/' ? '' : path}/${folderName}`;
-    if (mockFileSystem[newFolderPath]) {
+    if (Object.keys(mockFileSystem).includes(newFolderPath)) {
       throw new Error("Folder already exists");
     }
 
@@ -121,5 +140,99 @@ export const fileService = {
     };
 
     return simulateDelay(root);
+  },
+
+  async deleteEntries(paths: string[]): Promise<void> {
+    console.log('Deleting entries:', paths);
+    // Filter out nested paths to avoid errors
+    const topLevelPaths = paths.filter(path => 
+        !paths.some(otherPath => path.startsWith(otherPath + '/') && path !== otherPath)
+    );
+
+    const deleteFolderRecursively = (folderPath: string) => {
+        const entries = mockFileSystem[folderPath] || [];
+        for (const entry of entries) {
+            if (entry.type === FileType.FOLDER) {
+                deleteFolderRecursively(entry.path);
+            }
+        }
+        delete mockFileSystem[folderPath];
+    };
+
+    for (const path of topLevelPaths) {
+        const entry = findEntry(path);
+        if (!entry) continue;
+
+        if (entry.type === FileType.FOLDER) {
+            deleteFolderRecursively(path);
+        }
+
+        const parentPath = getParentPath(path);
+        const parentDir = mockFileSystem[parentPath];
+        if (parentDir) {
+            const index = parentDir.findIndex(e => e.path === path);
+            if (index > -1) {
+                parentDir.splice(index, 1);
+            }
+        }
+    }
+    return simulateDelay(undefined);
+  },
+
+  async copyEntries(paths: string[], destinationPath: string): Promise<void> {
+    console.log(`Copying ${paths.length} items to ${destinationPath}`);
+    const topLevelPaths = paths.filter(path => 
+        !paths.some(otherPath => path.startsWith(otherPath + '/') && path !== otherPath)
+    );
+
+    const getUniqueName = (destPath: string, originalName: string): string => {
+        let newName = originalName;
+        let counter = 1;
+        const destEntries = mockFileSystem[destPath] || [];
+        while (destEntries.some(e => e.name === newName)) {
+            const extension = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
+            const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
+            newName = `${nameWithoutExt} (${counter})${extension}`;
+            counter++;
+        }
+        return newName;
+    };
+
+    const copyRecursively = (sourcePath: string, destPath: string) => {
+        const sourceEntry = findEntry(sourcePath);
+        if (!sourceEntry) return;
+
+        const newName = getUniqueName(destPath, sourceEntry.name);
+        const newPath = `${destPath === '/' ? '' : destPath}/${newName}`;
+
+        const newEntry: FileEntry = { ...sourceEntry, name: newName, path: newPath, lastModified: new Date() };
+        
+        if (!mockFileSystem[destPath]) {
+            mockFileSystem[destPath] = [];
+        }
+        mockFileSystem[destPath].push(newEntry);
+        
+        if (sourceEntry.type === FileType.FOLDER) {
+            mockFileSystem[newPath] = [];
+            const children = mockFileSystem[sourcePath] || [];
+            for (const child of children) {
+                copyRecursively(child.path, newPath);
+            }
+        }
+    };
+    
+    for (const path of topLevelPaths) {
+        copyRecursively(path, destinationPath);
+    }
+
+    return simulateDelay(undefined);
+  },
+
+  async moveEntries(paths: string[], destinationPath: string): Promise<void> {
+    console.log(`Moving ${paths.length} items to ${destinationPath}`);
+    // A real backend would do this atomically. Here we simulate it.
+    await this.copyEntries(paths, destinationPath);
+    await this.deleteEntries(paths);
+    return simulateDelay(undefined);
   }
 };

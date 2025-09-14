@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import Header from './components/Header';
 import FileList from './components/FileList';
@@ -7,25 +6,39 @@ import Icon from './components/Icon';
 import NewFolderModal from './components/NewFolderModal';
 import Sidebar from './components/Sidebar';
 import DropzoneOverlay from './components/DropzoneOverlay';
+import ActionBar from './components/ActionBar';
+import MoveCopyModal from './components/MoveCopyModal';
 import { useFileBrowser } from './hooks/useFileBrowser';
 import { useFolderTree } from './hooks/useFolderTree';
+
+type MoveCopyOperation = 'move' | 'copy';
 
 const App: React.FC = () => {
   const { 
     currentPath, 
     fileEntries, 
     isLoading, 
-    error, 
+    error,
+    selectedEntries,
     navigateTo, 
     navigateUp,
     uploadFile,
     uploadFiles,
     createFolder,
-    downloadFolder
+    downloadFolder,
+    toggleSelection,
+    toggleSelectAll,
+    clearSelection,
+    deleteSelectedEntries,
+    copySelectedEntries,
+    moveSelectedEntries
   } = useFileBrowser('/');
   
   const folderTreeHook = useFolderTree();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+  const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
+  const [moveCopyOperation, setMoveCopyOperation] = useState<MoveCopyOperation>('copy');
+  
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounter = useRef(0);
   
@@ -37,6 +50,35 @@ const App: React.FC = () => {
      await createFolder(folderName);
      folderTreeHook.refreshTree();
   };
+
+  const handleDelete = () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedEntries.size} item(s)? This action cannot be undone.`)) {
+        deleteSelectedEntries().then(() => {
+            folderTreeHook.refreshTree();
+        });
+    }
+  };
+
+  const handleMove = () => {
+    setMoveCopyOperation('move');
+    setIsMoveCopyModalOpen(true);
+  };
+
+  const handleCopy = () => {
+    setMoveCopyOperation('copy');
+    setIsMoveCopyModalOpen(true);
+  };
+
+  const handleMoveCopySubmit = async (destinationPath: string) => {
+    if (moveCopyOperation === 'copy') {
+        await copySelectedEntries(destinationPath);
+    } else {
+        await moveSelectedEntries(destinationPath);
+    }
+    folderTreeHook.refreshTree();
+    setIsMoveCopyModalOpen(false);
+  };
+
 
   // --- Drag and Drop Handlers ---
   
@@ -97,6 +139,7 @@ const App: React.FC = () => {
 
     if (files.length > 0) {
         await uploadFiles(files);
+        folderTreeHook.refreshTree();
     }
   };
 
@@ -147,21 +190,33 @@ const App: React.FC = () => {
             <DropzoneOverlay isVisible={isDraggingOver} />
             <Header 
               onUpload={handleUpload} 
-              onCreateFolder={() => setIsModalOpen(true)}
+              onCreateFolder={() => setIsNewFolderModalOpen(true)}
             />
             
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6 mt-4">
-              <div className="flex items-center mb-4">
-                  {currentPath !== '/' && (
-                      <button onClick={navigateUp} className="mr-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Go up a directory">
-                          <Icon type="back" className="w-5 h-5"/>
-                      </button>
-                  )}
-                  <Breadcrumbs path={currentPath} onNavigate={navigateTo} />
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    {currentPath !== '/' && (
+                        <button onClick={navigateUp} className="mr-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Go up a directory">
+                            <Icon type="back" className="w-5 h-5"/>
+                        </button>
+                    )}
+                    <Breadcrumbs path={currentPath} onNavigate={navigateTo} />
+                  </div>
               </div>
               
+              {selectedEntries.size > 0 ? (
+                <ActionBar 
+                  count={selectedEntries.size}
+                  onDelete={handleDelete}
+                  onMove={handleMove}
+                  onCopy={handleCopy}
+                  onClearSelection={clearSelection}
+                />
+              ) : null}
+
               {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative my-4" role="alert">
                   <strong className="font-bold">Error:</strong>
                   <span className="block sm:inline ml-2">{error}</span>
                 </div>
@@ -170,17 +225,30 @@ const App: React.FC = () => {
               <FileList 
                 entries={fileEntries}
                 isLoading={isLoading}
+                selectedEntries={selectedEntries}
                 onNavigate={navigateTo}
                 onDownloadFolder={downloadFolder}
+                onToggleSelection={toggleSelection}
+                onToggleSelectAll={toggleSelectAll}
               />
             </div>
           </main>
         </div>
       </div>
       <NewFolderModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isNewFolderModalOpen}
+        onClose={() => setIsNewFolderModalOpen(false)}
         onSubmit={handleCreateFolder}
+      />
+       <MoveCopyModal
+        isOpen={isMoveCopyModalOpen}
+        operation={moveCopyOperation}
+        onClose={() => setIsMoveCopyModalOpen(false)}
+        onSubmit={handleMoveCopySubmit}
+        // Exclude currently selected folders and their children from being destinations
+        // to prevent moving/copying a folder into itself.
+        currentPath={currentPath}
+        itemsToMove={selectedEntries}
       />
     </div>
   );

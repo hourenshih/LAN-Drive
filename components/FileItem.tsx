@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { FileEntry, FileType } from '../types';
 import Icon, { getIconTypeForFile } from './Icon';
 
 interface FileItemProps {
   entry: FileEntry;
+  isSelected: boolean;
   onNavigate: (path: string) => void;
   onDownloadFolder: (path: string) => void;
+  onToggleSelection: (path: string) => void;
 }
 
 const formatBytes = (bytes: number, decimals = 2): string => {
@@ -28,12 +29,16 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const FileItem: React.FC<FileItemProps> = ({ entry, onNavigate, onDownloadFolder }) => {
+const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDownloadFolder, onToggleSelection }) => {
   const isFolder = entry.type === FileType.FOLDER;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleRowClick = () => {
+    onToggleSelection(entry.path);
+  };
+
+  const handleLinkClick = (e: React.MouseEvent) => {
     if (isFolder) {
-      e.preventDefault();
+      e.stopPropagation(); // Prevent row click from firing
       onNavigate(entry.path);
     }
   };
@@ -48,22 +53,40 @@ const FileItem: React.FC<FileItemProps> = ({ entry, onNavigate, onDownloadFolder
       e.stopPropagation();
       onDownloadFolder(entry.path);
   };
+  
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.stopPropagation();
+      onToggleSelection(entry.path);
+  };
 
-  // FIX: Use FileType.FOLDER enum member instead of the string literal 'folder' to satisfy the Icon component's prop type.
+
   const iconType = isFolder ? FileType.FOLDER : getIconTypeForFile(entry.name);
   
-  const commonClasses = "flex items-center p-3 space-x-4";
-  const interactiveClasses = "hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer";
+  const rowClasses = `flex items-center p-3 space-x-4 border-l-4 ${
+    isSelected
+      ? 'bg-blue-50 dark:bg-gray-700 border-blue-500'
+      : 'border-transparent'
+  } hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer`;
   const linkClasses = "text-gray-900 dark:text-white font-medium truncate";
 
   return (
-    <div className={`${commonClasses} ${interactiveClasses}`} onClick={handleClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleClick(e as any)}>
-      <div className="flex-shrink-0">
+    <div className={rowClasses} onClick={handleRowClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleRowClick()}>
+      <div className="flex-shrink-0 flex items-center">
+        <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-4"
+            checked={isSelected}
+            onChange={handleCheckboxChange}
+            onClick={(e) => e.stopPropagation()} // Prevent row click when clicking checkbox itself
+            aria-label={`Select ${entry.name}`}
+        />
         <Icon type={iconType} className="w-6 h-6" />
       </div>
       <div className="flex-1 min-w-0 grid grid-cols-10 gap-4 items-center">
         <div className="col-span-10 md:col-span-4">
-          <p className={linkClasses}>{entry.name}</p>
+           <span onClick={isFolder ? handleLinkClick : undefined} className={`${isFolder ? 'cursor-pointer hover:underline' : ''} ${linkClasses}`}>
+                {entry.name}
+            </span>
         </div>
         <div className="hidden md:block md:col-span-3">
           <p className="text-sm text-gray-500 dark:text-gray-400">{formatDate(entry.lastModified)}</p>
@@ -75,7 +98,7 @@ const FileItem: React.FC<FileItemProps> = ({ entry, onNavigate, onDownloadFolder
           {isFolder && (
              <button
                 onClick={handleFolderDownload}
-                className="text-blue-600 hover:text-blue-800 font-medium p-2 rounded-full hover:bg-blue-100"
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
                 aria-label={`Download folder ${entry.name}`}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -86,7 +109,7 @@ const FileItem: React.FC<FileItemProps> = ({ entry, onNavigate, onDownloadFolder
           {!isFolder && (
             <button
                 onClick={handleDownload}
-                className="text-blue-600 hover:text-blue-800 font-medium p-2 rounded-full hover:bg-blue-100"
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
                 aria-label={`Download ${entry.name}`}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
