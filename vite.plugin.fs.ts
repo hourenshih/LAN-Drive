@@ -1,3 +1,4 @@
+
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
@@ -242,9 +243,22 @@ async function handleCompress(req: IncomingMessage, res: ServerResponse) {
         }
     }
     
+    let archiver: any;
     try {
-        // Dynamically require 'archiver' to avoid crashing if it's not installed.
-        const archiver = require('archiver');
+        archiver = require('archiver');
+    } catch (err) {
+        archiver = null;
+    }
+
+    if (!archiver) {
+        console.error("The 'archiver' library is not available. Using placeholder for compression.");
+        await fs.writeFile(destPath, "This is a placeholder. Real compression requires the 'archiver' library.");
+        res.statusCode = 204;
+        res.end();
+        return;
+    }
+
+    try {
         const output = createWriteStream(destPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -269,15 +283,9 @@ async function handleCompress(req: IncomingMessage, res: ServerResponse) {
         res.statusCode = 204;
         res.end();
     } catch (err) {
-        // Gracefully fall back to placeholder if 'archiver' is not found.
-        if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
-            console.error("The 'archiver' library is not available. Using placeholder for compression.");
-            await fs.writeFile(destPath, "This is a placeholder. Real compression requires the 'archiver' library.");
-            res.statusCode = 204;
-            res.end();
-        } else {
-            throw err;
-        }
+        // Clean up partially created file if archiving fails
+        try { await fs.unlink(destPath); } catch (e) { /* ignore cleanup error */ }
+        throw err;
     }
 }
 
@@ -302,9 +310,23 @@ async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
         }
     }
 
+    let unzipper: any;
     try {
-        // Dynamically require 'unzipper' to avoid crashing if it's not installed.
-        const unzipper = require('unzipper');
+        unzipper = require('unzipper');
+    } catch (err) {
+        unzipper = null;
+    }
+
+    if (!unzipper) {
+        console.error("The 'unzipper' library is not available. Using placeholder for decompression.");
+        await fs.mkdir(destPath, { recursive: true });
+        await fs.writeFile(path.join(destPath, 'unzipped-placeholder.txt'), "Files would be here. Real decompression requires the 'unzipper' library.");
+        res.statusCode = 204;
+        res.end();
+        return;
+    }
+
+    try {
         const stream = createReadStream(sourcePath).pipe(unzipper.Extract({ path: destPath }));
         await new Promise((resolve, reject) => {
             stream.on('finish', resolve);
@@ -313,16 +335,9 @@ async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
         res.statusCode = 204;
         res.end();
     } catch (err) {
-        // Gracefully fall back to placeholder if 'unzipper' is not found.
-        if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
-            console.error("The 'unzipper' library is not available. Using placeholder for decompression.");
-            await fs.mkdir(destPath, { recursive: true });
-            await fs.writeFile(path.join(destPath, 'unzipped-placeholder.txt'), "Files would be here. Real decompression requires the 'unzipper' library.");
-            res.statusCode = 204;
-            res.end();
-        } else {
-            throw err;
-        }
+        // Clean up partially extracted directory if decompression fails
+        try { await fs.rm(destPath, { recursive: true, force: true }); } catch (e) { /* ignore cleanup error */ }
+        throw err;
     }
 }
 
