@@ -6,7 +6,6 @@ interface FileItemProps {
   entry: FileEntry;
   isSelected: boolean;
   onNavigate: (path: string) => void;
-  onDownloadFolder: (path: string) => void;
   onToggleSelection: (path: string) => void;
   onDecompress: (path: string) => void;
 }
@@ -30,7 +29,7 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDownloadFolder, onToggleSelection, onDecompress }) => {
+const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onToggleSelection, onDecompress }) => {
   const isFolder = entry.type === FileType.FOLDER;
   const isZip = entry.name.toLowerCase().endsWith('.zip');
 
@@ -48,11 +47,6 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDo
   const handleDownload = (e: React.MouseEvent) => {
       e.stopPropagation();
       window.location.href = `/api/download-file?path=${encodeURIComponent(entry.path)}`;
-  };
-
-  const handleFolderDownload = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onDownloadFolder(entry.path);
   };
 
   const handleDecompress = (e: React.MouseEvent) => {
@@ -101,17 +95,6 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDo
           <p className="text-sm text-gray-500 dark:text-gray-400">{!isFolder ? formatBytes(entry.size) : '--'}</p>
         </div>
         <div className="hidden md:block md:col-span-1 text-right">
-          {isFolder && (
-             <button
-                onClick={handleFolderDownload}
-                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                aria-label={`Download folder ${entry.name}`}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-            </button>
-          )}
           {!isFolder && isZip && (
              <button
                 onClick={handleDecompress}

@@ -1,10 +1,8 @@
-
-
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { createWriteStream, createReadStream } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { FileType, FileEntry, TreeNodeData } from './types';
 
 const FILES_ROOT = path.resolve(process.cwd(), 'files');
@@ -315,110 +313,6 @@ async function handleDownloadFile(url: URL, res: ServerResponse) {
     }
 }
 
-async function handleDownloadFolder(url: URL, res: ServerResponse) {
-    const folderPath = url.searchParams.get('path');
-    if (!folderPath) {
-        return errorResponse(res, 400, 'Folder path is required.');
-    }
-
-    let archiver: any;
-    try {
-        archiver = require('archiver');
-    } catch (err) {
-        console.error("The 'archiver' library is not available. Cannot download folder as zip.");
-        return errorResponse(res, 503, "Server is not configured for folder downloads.");
-    }
-
-    try {
-        const safePath = getSafePath(folderPath);
-        const stats = await fs.stat(safePath);
-
-        if (!stats.isDirectory()) {
-            return errorResponse(res, 400, 'Path is not a directory.');
-        }
-
-        const folderName = path.basename(safePath);
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="${folderName}.zip"`);
-
-        const archive = archiver('zip', { zlib: { level: 9 } });
-
-        archive.on('error', (err: any) => {
-            console.error(`Archive error for ${folderPath}:`, err);
-        });
-        
-        res.on('close', () => {
-            archive.destroy();
-        });
-
-        archive.pipe(res);
-        archive.directory(safePath, false);
-        await archive.finalize();
-
-    } catch (err: any) {
-        if (err.code === 'ENOENT') {
-            return errorResponse(res, 404, 'Folder not found.');
-        }
-        console.error(`Error zipping folder ${folderPath}:`, err);
-        if (!res.headersSent) {
-            errorResponse(res, 500, 'Internal server error while zipping folder.');
-        }
-    }
-}
-
-async function handleDownloadMultiple(url: URL, res: ServerResponse) {
-    const pathsToDownload = url.searchParams.getAll('path');
-    if (!pathsToDownload || pathsToDownload.length === 0) {
-        return errorResponse(res, 400, 'File/Folder paths are required.');
-    }
-
-    let archiver: any;
-    try {
-        archiver = require('archiver');
-    } catch (err) {
-        console.error("The 'archiver' library is not available. Cannot download multiple items as zip.");
-        return errorResponse(res, 503, "Server is not configured for this type of download.");
-    }
-
-    try {
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="Download.zip"`);
-
-        const archive = archiver('zip', { zlib: { level: 9 } });
-
-        archive.on('error', (err: any) => {
-            console.error(`Archive error for multiple download:`, err);
-        });
-        
-        res.on('close', () => {
-            archive.destroy();
-        });
-
-        archive.pipe(res);
-        
-        const topLevelPaths = pathsToDownload.filter((p: string) => !pathsToDownload.some((other: string) => p.startsWith(other + '/') && p !== other));
-
-        for (const p of topLevelPaths) {
-            const sourcePath = getSafePath(p);
-            const stats = await fs.stat(sourcePath);
-            if (stats.isDirectory()) {
-                archive.directory(sourcePath, path.basename(p));
-            } else {
-                archive.file(sourcePath, { name: path.basename(p) });
-            }
-        }
-        
-        await archive.finalize();
-
-    } catch (err: any) {
-        console.error(`Error zipping multiple items:`, err);
-        if (!res.headersSent) {
-            errorResponse(res, 500, 'Internal server error while zipping items.');
-        }
-    }
-}
-
-
 // --- VITE PLUGIN ---
 
 export function fsPlugin(): Plugin {
@@ -439,8 +333,6 @@ export function fsPlugin(): Plugin {
                         case '/api/upload': return await handleUpload(req, res);
                         case '/api/create-folder': return await handleCreateFolder(req, res);
                         case '/api/folder-tree': return await handleGetFolderTree(res);
-                        case '/api/download-folder': return await handleDownloadFolder(url, res);
-                        case '/api/download-multiple': return await handleDownloadMultiple(url, res);
                         case '/api/delete': return await handleDelete(req, res);
                         case '/api/copy': return await handleCopy(req, res);
                         case '/api/move': return await handleMove(req, res);

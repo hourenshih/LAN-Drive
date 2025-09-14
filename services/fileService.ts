@@ -80,15 +80,19 @@ export const fileService = {
         lastModified: new Date(newEntry.lastModified),
     };
   },
-  
-  downloadFolder(path: string): void {
-    window.location.href = `/api/download-folder?path=${encodeURIComponent(path)}`;
-  },
 
   downloadEntries(paths: string[]): void {
-    const url = new URL('/api/download-multiple', window.location.origin);
-    paths.forEach(p => url.searchParams.append('path', p));
-    window.location.href = url.toString();
+    paths.forEach((path, index) => {
+      // Stagger downloads to prevent the browser from blocking multiple downloads
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = `/api/download-file?path=${encodeURIComponent(path)}`;
+        // The browser will infer the filename from the Content-Disposition header.
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, index * 300);
+    });
   },
 
   async getFolderTree(): Promise<TreeNodeData> {

@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 // FIX: Import FileType to use its enum members for type safety.
 import { TreeNodeData, FileType } from '../types';
@@ -12,7 +13,7 @@ interface TreeNodeProps {
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, level = 0 }) => {
-  const [isOpen, setIsOpen] = useState(selectedPath.startsWith(node.path) && node.path !== '/');
+  const [isOpen, setIsOpen] = useState(true);
 
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;

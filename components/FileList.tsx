@@ -9,7 +9,6 @@ interface FileListProps {
   selectedEntries: Set<string>;
   sortConfig: SortConfig;
   onNavigate: (path: string) => void;
-  onDownloadFolder: (path: string) => void;
   onToggleSelection: (path: string) => void;
   onToggleSelectAll: () => void;
   onSortChange: (key: SortKey) => void;
@@ -35,7 +34,7 @@ const SortableHeader: React.FC<{
 };
 
 
-const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries, sortConfig, onNavigate, onDownloadFolder, onToggleSelection, onToggleSelectAll, onSortChange, onDecompress }) => {
+const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries, sortConfig, onNavigate, onToggleSelection, onToggleSelectAll, onSortChange, onDecompress }) => {
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -94,7 +93,6 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries
               entry={entry} 
               isSelected={selectedEntries.has(entry.path)}
               onNavigate={onNavigate} 
-              onDownloadFolder={onDownloadFolder}
               onToggleSelection={onToggleSelection}
               onDecompress={onDecompress}
             />

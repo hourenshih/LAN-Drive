@@ -29,7 +29,6 @@ const App: React.FC = () => {
     navigateUp,
     uploadFiles,
     createFolder,
-    downloadFolder,
     toggleSelection,
     toggleSelectAll,
     clearSelection,
@@ -269,7 +268,6 @@ const App: React.FC = () => {
                 selectedEntries={selectedEntries}
                 sortConfig={sortConfig}
                 onNavigate={navigateTo}
-                onDownloadFolder={downloadFolder}
                 onToggleSelection={toggleSelection}
                 onToggleSelectAll={toggleSelectAll}
                 onSortChange={handleSortChange}

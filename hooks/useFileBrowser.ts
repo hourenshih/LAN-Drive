@@ -94,15 +94,6 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     }
   };
 
-  const downloadFolder = (path: string) => {
-    try {
-        fileService.downloadFolder(path);
-    } catch (err) {
-        setError('Failed to start folder download.');
-        console.error(err);
-    }
-  };
-
   // --- Selection handlers ---
   const clearSelection = () => {
     setSelectedEntries(new Set());
@@ -146,7 +137,25 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
   const copySelectedEntries = (dest: string) => performAction(() => fileService.copyEntries(Array.from(selectedEntries), dest), 'Failed to copy items.');
   const moveSelectedEntries = (dest: string) => performAction(() => fileService.moveEntries(Array.from(selectedEntries), dest), 'Failed to move items.');
   const renameEntry = (path: string, newName: string) => performAction(() => fileService.renameEntry(path, newName), 'Failed to rename item.');
-  const downloadSelectedEntries = () => fileService.downloadEntries(Array.from(selectedEntries));
+  
+  const downloadSelectedEntries = () => {
+    const selected = fileEntries.filter(entry => selectedEntries.has(entry.path));
+    const filesToDownload = selected.filter(entry => entry.type === FileType.FILE);
+    const foldersSelected = selected.filter(entry => entry.type === FileType.FOLDER);
+
+    if (filesToDownload.length > 0) {
+        fileService.downloadEntries(filesToDownload.map(f => f.path));
+    }
+
+    if (foldersSelected.length > 0) {
+        if (filesToDownload.length > 0) {
+            alert(`Note: ${foldersSelected.length} folder(s) were ignored. Only files can be downloaded individually.`);
+        } else {
+            alert(`Folder download is not supported. Please select files to download.`);
+        }
+    }
+  };
+  
   const decompressEntry = (path: string) => performAction(() => fileService.decompressEntry(path), 'Failed to decompress item.');
   const categorizeSelectedEntries = () => performAction(() => fileService.categorizeEntries(Array.from(selectedEntries), currentPath), 'Failed to categorize items.');
 
@@ -162,7 +171,6 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     navigateUp,
     uploadFiles,
     createFolder,
-    downloadFolder,
     refresh: () => fetchFiles(currentPath, searchQuery),
     toggleSelection,
     toggleSelectAll,
