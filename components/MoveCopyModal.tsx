@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useFolderTree } from '../hooks/useFolderTree';
 import { TreeNodeData } from '../types';
-import TreeNode from './TreeNode';
 
 interface MoveCopyModalProps {
   isOpen: boolean;
@@ -10,6 +8,8 @@ interface MoveCopyModalProps {
   onSubmit: (destinationPath: string) => void;
   currentPath: string;
   itemsToMove: Set<string>;
+  tree: TreeNodeData | null;
+  isLoadingTree: boolean;
 }
 
 // A slightly modified TreeNode for selection purposes
@@ -67,8 +67,7 @@ const SelectableTreeNode: React.FC<{
     )
 }
 
-const MoveCopyModal: React.FC<MoveCopyModalProps> = ({ isOpen, operation, onClose, onSubmit, currentPath, itemsToMove }) => {
-  const { tree, isLoading } = useFolderTree();
+const MoveCopyModal: React.FC<MoveCopyModalProps> = ({ isOpen, operation, onClose, onSubmit, currentPath, itemsToMove, tree, isLoadingTree }) => {
   const [selectedDestination, setSelectedDestination] = useState(currentPath);
 
   // Disable moving/copying a folder into itself or its children
@@ -107,7 +106,7 @@ const MoveCopyModal: React.FC<MoveCopyModalProps> = ({ isOpen, operation, onClos
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Select a destination folder.</p>
             <div className="mt-4 border rounded-lg p-2 h-64 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-                {isLoading && <p>Loading folders...</p>}
+                {isLoadingTree && <p>Loading folders...</p>}
                 {tree && (
                     <SelectableTreeNode 
                         node={tree}

@@ -184,8 +184,10 @@ async function handleRename(req: IncomingMessage, res: ServerResponse) {
     if (!entryPath || !newName) return errorResponse(res, 400, 'Invalid request body');
 
     const sourcePath = getSafePath(entryPath);
-    const parentDir = path.dirname(sourcePath);
-    const destPath = path.join(parentDir, newName);
+    // Construct the new path using posix semantics (like the client) before sanitizing.
+    const parentClientDir = path.posix.dirname(entryPath);
+    const newClientPath = path.posix.join(parentClientDir, newName);
+    const destPath = getSafePath(newClientPath);
 
     await fs.rename(sourcePath, destPath);
     res.statusCode = 204;
@@ -284,7 +286,7 @@ async function handleDownloadFile(url: URL, res: ServerResponse) {
         const stats = await fs.stat(safePath);
 
         if (stats.isDirectory()) {
-            return errorResponse(res, 400, 'Cannot download a directory. Please use the folder download feature.');
+            return errorResponse(res, 400, 'Downloading directories is not supported.');
         }
 
         const fileName = path.basename(safePath);

@@ -289,6 +289,8 @@ const App: React.FC = () => {
         onSubmit={handleMoveCopySubmit}
         currentPath={currentPath}
         itemsToMove={selectedEntries}
+        tree={folderTreeHook.tree}
+        isLoadingTree={folderTreeHook.isLoading}
       />
       <RenameModal
         isOpen={isRenameModalOpen && entryToRename !== null}
