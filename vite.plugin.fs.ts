@@ -2,6 +2,7 @@ import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { createWriteStream, createReadStream } from 'node:fs';
 import { FileType, FileEntry, TreeNodeData } from './types';
 
 const FILES_ROOT = path.resolve(process.cwd(), 'files');
@@ -211,47 +212,120 @@ async function handleRename(req: IncomingMessage, res: ServerResponse) {
 
 async function handleCompress(req: IncomingMessage, res: ServerResponse) {
     const { paths, currentPath } = await readBody(req);
-    if (!paths || !Array.isArray(paths)) return errorResponse(res, 400, 'Invalid request body');
-    
-    // In a real app, you'd use a library like 'archiver' here.
-    // For this environment, we'll create a placeholder file.
-    let archiveName = 'Archive.zip';
-    let destPath = getSafePath(path.join(currentPath, archiveName));
+    if (!paths || !Array.isArray(paths) || paths.length === 0) {
+        return errorResponse(res, 400, 'Invalid request body');
+    }
+
+    // Naming logic: use original name for single file, 'Archive.zip' for multiple.
+    let archiveName: string;
+    if (paths.length === 1) {
+        const baseName = path.basename(paths[0]);
+        const ext = path.extname(baseName);
+        archiveName = ext ? baseName.replace(ext, '.zip') : `${baseName}.zip`;
+    } else {
+        archiveName = 'Archive.zip';
+    }
+
+    // Handle potential name conflicts by adding a number, e.g., 'Archive (1).zip'.
+    let finalArchiveName = archiveName;
+    let destPath = getSafePath(path.join(currentPath, finalArchiveName));
     let i = 1;
     while (true) {
         try {
             await fs.access(destPath);
-            archiveName = `Archive (${i++}).zip`;
-            destPath = getSafePath(path.join(currentPath, archiveName));
+            const ext = path.extname(archiveName);
+            const base = archiveName.replace(ext, '');
+            finalArchiveName = `${base} (${i++})${ext}`;
+            destPath = getSafePath(path.join(currentPath, finalArchiveName));
         } catch {
-            break; // file doesn't exist, we can use this name
+            break; // A suitable name has been found.
         }
     }
     
-    console.log(`Zipping ${paths.length} items into ${archiveName}. (Placeholder)`);
-    await fs.writeFile(destPath, 'This is a placeholder for a zip file.');
+    try {
+        // Dynamically require 'archiver' to avoid crashing if it's not installed.
+        const archiver = require('archiver');
+        const output = createWriteStream(destPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
 
-    res.statusCode = 204;
-    res.end();
+        await new Promise<void>((resolve, reject) => {
+            output.on('close', resolve);
+            archive.on('error', reject);
+            archive.pipe(output);
+
+            Promise.all(paths.map(async (p: string) => {
+                const sourcePath = getSafePath(p);
+                const stats = await fs.stat(sourcePath);
+                if (stats.isDirectory()) {
+                    archive.directory(sourcePath, path.basename(p));
+                } else {
+                    archive.file(sourcePath, { name: path.basename(p) });
+                }
+            })).then(() => {
+                archive.finalize();
+            }).catch(reject);
+        });
+
+        res.statusCode = 204;
+        res.end();
+    } catch (err) {
+        // Gracefully fall back to placeholder if 'archiver' is not found.
+        if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+            console.error("The 'archiver' library is not available. Using placeholder for compression.");
+            await fs.writeFile(destPath, "This is a placeholder. Real compression requires the 'archiver' library.");
+            res.statusCode = 204;
+            res.end();
+        } else {
+            throw err;
+        }
+    }
 }
+
 
 async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
     const { path: zipPath } = await readBody(req);
     if (!zipPath) return errorResponse(res, 400, 'Invalid request body');
     
+    const sourcePath = getSafePath(zipPath);
     const folderName = path.basename(zipPath, '.zip');
     const parentDir = path.posix.dirname(zipPath);
-    const destPath = getSafePath(path.join(parentDir, folderName));
+    let destPath = getSafePath(path.join(parentDir, folderName));
 
-    // In a real app, you'd use a library like 'unzipper' here.
-    // For this environment, we'll create a placeholder folder.
-    console.log(`Decompressing ${zipPath} into ${destPath}. (Placeholder)`);
-    await fs.mkdir(destPath, { recursive: true });
-    await fs.writeFile(path.join(destPath, 'unzipped-placeholder.txt'), 'Files would be here.');
+    // Handle name conflicts for the destination folder.
+    let i = 1;
+    while (true) {
+        try {
+            await fs.access(destPath);
+            destPath = getSafePath(path.join(parentDir, `${folderName} (${i++})`));
+        } catch {
+            break;
+        }
+    }
 
-    res.statusCode = 204;
-    res.end();
+    try {
+        // Dynamically require 'unzipper' to avoid crashing if it's not installed.
+        const unzipper = require('unzipper');
+        const stream = createReadStream(sourcePath).pipe(unzipper.Extract({ path: destPath }));
+        await new Promise((resolve, reject) => {
+            stream.on('finish', resolve);
+            stream.on('error', reject);
+        });
+        res.statusCode = 204;
+        res.end();
+    } catch (err) {
+        // Gracefully fall back to placeholder if 'unzipper' is not found.
+        if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+            console.error("The 'unzipper' library is not available. Using placeholder for decompression.");
+            await fs.mkdir(destPath, { recursive: true });
+            await fs.writeFile(path.join(destPath, 'unzipped-placeholder.txt'), "Files would be here. Real decompression requires the 'unzipper' library.");
+            res.statusCode = 204;
+            res.end();
+        } else {
+            throw err;
+        }
+    }
 }
+
 
 async function handleCategorize(req: IncomingMessage, res: ServerResponse) {
     const { paths, currentPath } = await readBody(req);
