@@ -1,0 +1,5 @@
+{
+  "name": "LAN-Drive",
+  "description": "A web application with a OneDrive-like interface for browsing and managing files on a local network. It allows users to view files and folders, navigate directories, upload new files, and create new folders.",
+  "requestFramePermissions": []
+}
