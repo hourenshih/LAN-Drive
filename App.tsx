@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Header from './components/Header';
 import FileList from './components/FileList';
 import Breadcrumbs from './components/Breadcrumbs';
@@ -8,21 +8,25 @@ import Sidebar from './components/Sidebar';
 import DropzoneOverlay from './components/DropzoneOverlay';
 import ActionBar from './components/ActionBar';
 import MoveCopyModal from './components/MoveCopyModal';
-import { useFileBrowser } from './hooks/useFileBrowser';
+import RenameModal from './components/RenameModal';
+import { useFileBrowser, SortKey } from './hooks/useFileBrowser';
 import { useFolderTree } from './hooks/useFolderTree';
+import { FileEntry } from './types';
 
 type MoveCopyOperation = 'move' | 'copy';
 
 const App: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const { 
     currentPath, 
     fileEntries, 
     isLoading, 
     error,
     selectedEntries,
+    sortConfig,
+    setSortConfig,
     navigateTo, 
     navigateUp,
-    uploadFile,
     uploadFiles,
     createFolder,
     downloadFolder,
@@ -31,19 +35,30 @@ const App: React.FC = () => {
     clearSelection,
     deleteSelectedEntries,
     copySelectedEntries,
-    moveSelectedEntries
-  } = useFileBrowser('/');
+    moveSelectedEntries,
+    renameEntry,
+    compressSelectedEntries,
+    decompressEntry,
+    categorizeSelectedEntries,
+  } = useFileBrowser('/', searchQuery);
   
   const folderTreeHook = useFolderTree();
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [moveCopyOperation, setMoveCopyOperation] = useState<MoveCopyOperation>('copy');
   
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounter = useRef(0);
   
-  const handleUpload = async (file: File) => {
-    await uploadFile(file);
+  const entryToRename = useMemo((): FileEntry | null => {
+    if (selectedEntries.size !== 1) return null;
+    const path = Array.from(selectedEntries)[0];
+    return fileEntries.find(e => e.path === path) || null;
+  }, [selectedEntries, fileEntries]);
+
+  const handleUpload = async (files: File[]) => {
+    await uploadFiles(files);
   };
 
   const handleCreateFolder = async (folderName: string) => {
@@ -69,6 +84,27 @@ const App: React.FC = () => {
     setIsMoveCopyModalOpen(true);
   };
 
+  const handleRename = async (newName: string) => {
+    if (!entryToRename || !newName) return;
+    await renameEntry(entryToRename.path, newName);
+    folderTreeHook.refreshTree();
+  };
+  
+  const handleCompress = () => {
+    if (window.confirm(`Are you sure you want to compress ${selectedEntries.size} item(s) into an archive?`)) {
+      compressSelectedEntries();
+    }
+  };
+
+  const handleCategorize = () => {
+    if (window.confirm(`This will move files into category folders (Pictures, Documents, etc.). Are you sure?`)) {
+        categorizeSelectedEntries().then(() => {
+            folderTreeHook.refreshTree();
+        });
+    }
+  };
+
+
   const handleMoveCopySubmit = async (destinationPath: string) => {
     if (moveCopyOperation === 'copy') {
         await copySelectedEntries(destinationPath);
@@ -79,6 +115,12 @@ const App: React.FC = () => {
     setIsMoveCopyModalOpen(false);
   };
 
+  const handleSortChange = (key: SortKey) => {
+    setSortConfig(prevConfig => ({
+        key,
+        direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   // --- Drag and Drop Handlers ---
   
@@ -189,8 +231,10 @@ const App: React.FC = () => {
           >
             <DropzoneOverlay isVisible={isDraggingOver} />
             <Header 
-              onUpload={handleUpload} 
+              onUpload={(file) => handleUpload([file])}
               onCreateFolder={() => setIsNewFolderModalOpen(true)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
             />
             
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6 mt-4">
@@ -212,6 +256,9 @@ const App: React.FC = () => {
                   onMove={handleMove}
                   onCopy={handleCopy}
                   onClearSelection={clearSelection}
+                  onRename={() => setIsRenameModalOpen(true)}
+                  onCompress={handleCompress}
+                  onCategorize={handleCategorize}
                 />
               ) : null}
 
@@ -226,10 +273,13 @@ const App: React.FC = () => {
                 entries={fileEntries}
                 isLoading={isLoading}
                 selectedEntries={selectedEntries}
+                sortConfig={sortConfig}
                 onNavigate={navigateTo}
                 onDownloadFolder={downloadFolder}
                 onToggleSelection={toggleSelection}
                 onToggleSelectAll={toggleSelectAll}
+                onSortChange={handleSortChange}
+                onDecompress={decompressEntry}
               />
             </div>
           </main>
@@ -245,10 +295,14 @@ const App: React.FC = () => {
         operation={moveCopyOperation}
         onClose={() => setIsMoveCopyModalOpen(false)}
         onSubmit={handleMoveCopySubmit}
-        // Exclude currently selected folders and their children from being destinations
-        // to prevent moving/copying a folder into itself.
         currentPath={currentPath}
         itemsToMove={selectedEntries}
+      />
+      <RenameModal
+        isOpen={isRenameModalOpen && entryToRename !== null}
+        currentName={entryToRename?.name || ''}
+        onClose={() => setIsRenameModalOpen(false)}
+        onSubmit={handleRename}
       />
     </div>
   );

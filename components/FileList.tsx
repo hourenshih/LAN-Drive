@@ -1,18 +1,41 @@
 import React, { useRef, useEffect } from 'react';
 import { FileEntry } from '../types';
+import { SortConfig, SortKey } from '../hooks/useFileBrowser';
 import FileItem from './FileItem';
 
 interface FileListProps {
   entries: FileEntry[];
   isLoading: boolean;
   selectedEntries: Set<string>;
+  sortConfig: SortConfig;
   onNavigate: (path: string) => void;
   onDownloadFolder: (path: string) => void;
   onToggleSelection: (path: string) => void;
   onToggleSelectAll: () => void;
+  onSortChange: (key: SortKey) => void;
+  onDecompress: (path: string) => void;
 }
 
-const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries, onNavigate, onDownloadFolder, onToggleSelection, onToggleSelectAll }) => {
+const SortableHeader: React.FC<{
+  label: string;
+  sortKey: SortKey;
+  sortConfig: SortConfig;
+  onSortChange: (key: SortKey) => void;
+  className?: string;
+}> = ({ label, sortKey, sortConfig, onSortChange, className }) => {
+  const isCurrentKey = sortConfig.key === sortKey;
+  const icon = isCurrentKey ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '';
+  
+  return (
+    <button onClick={() => onSortChange(sortKey)} className={`flex items-center space-x-2 ${className}`}>
+      <span>{label}</span>
+      <span className="text-xs">{icon}</span>
+    </button>
+  );
+};
+
+
+const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries, sortConfig, onNavigate, onDownloadFolder, onToggleSelection, onToggleSelectAll, onSortChange, onDecompress }) => {
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,10 +78,14 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries
                     onChange={onToggleSelectAll}
                     aria-label="Select all items"
                 />
-                <span className="pl-14">Name</span>
+                <SortableHeader label="Name" sortKey="name" sortConfig={sortConfig} onSortChange={onSortChange} className="pl-14"/>
             </div>
-            <div className="col-span-3">Date Modified</div>
-            <div className="col-span-2 text-right">File Size</div>
+            <div className="col-span-3">
+              <SortableHeader label="Date Modified" sortKey="lastModified" sortConfig={sortConfig} onSortChange={onSortChange} />
+            </div>
+            <div className="col-span-2 text-right">
+              <SortableHeader label="File Size" sortKey="size" sortConfig={sortConfig} onSortChange={onSortChange} className="ml-auto" />
+            </div>
             <div className="col-span-1"></div>
         </div>
         {entries.map(entry => (
@@ -69,6 +96,7 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries
               onNavigate={onNavigate} 
               onDownloadFolder={onDownloadFolder}
               onToggleSelection={onToggleSelection}
+              onDecompress={onDecompress}
             />
         ))}
     </div>

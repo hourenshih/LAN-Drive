@@ -1,20 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FileEntry } from '../types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { FileEntry, FileType } from '../types';
 import { fileService } from '../services/fileService';
 
-export const useFileBrowser = (initialPath: string = '/') => {
+export type SortKey = 'name' | 'lastModified' | 'size';
+export type SortDirection = 'asc' | 'desc';
+export interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
+}
+
+export const useFileBrowser = (initialPath: string = '/', searchQuery: string = '') => {
   const [currentPath, setCurrentPath] = useState<string>(initialPath);
   const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' });
 
-  const fetchFiles = useCallback(async (path: string) => {
+  const fetchFiles = useCallback(async (path: string, query: string) => {
     setIsLoading(true);
     setError(null);
-    setSelectedEntries(new Set()); // Clear selection on navigate
+    setSelectedEntries(new Set()); // Clear selection on navigate or search
     try {
-      const files = await fileService.getFiles(path);
+      const files = await fileService.getFiles(path, query);
       setFileEntries(files);
     } catch (err) {
       setError('Failed to fetch files. Please try again.');
@@ -25,8 +33,31 @@ export const useFileBrowser = (initialPath: string = '/') => {
   }, []);
 
   useEffect(() => {
-    fetchFiles(currentPath);
-  }, [currentPath, fetchFiles]);
+    fetchFiles(currentPath, searchQuery);
+  }, [currentPath, searchQuery, fetchFiles]);
+
+  const sortedFileEntries = useMemo(() => {
+    return [...fileEntries].sort((a, b) => {
+        // Always sort folders before files
+        if (a.type !== b.type) {
+            return a.type === FileType.FOLDER ? -1 : 1;
+        }
+
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+        let comparison = 0;
+        
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            comparison = valA.localeCompare(valB);
+        } else if (valA instanceof Date && valB instanceof Date) {
+            comparison = valA.getTime() - valB.getTime();
+        } else if (typeof valA === 'number' && typeof valB === 'number') {
+            comparison = valA - valB;
+        }
+        
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [fileEntries, sortConfig]);
 
   const navigateTo = (path: string) => {
     setCurrentPath(path);
@@ -43,7 +74,7 @@ export const useFileBrowser = (initialPath: string = '/') => {
       setIsLoading(true);
       const uploadPromises = files.map(file => fileService.uploadFile(currentPath, file));
       await Promise.all(uploadPromises);
-      await fetchFiles(currentPath); // Refresh list once after all uploads
+      await fetchFiles(currentPath, searchQuery); // Refresh list
     } catch (err) {
       setError('Failed to upload one or more files.');
       console.error(err);
@@ -52,14 +83,10 @@ export const useFileBrowser = (initialPath: string = '/') => {
     }
   };
 
-  const uploadFile = async (file: File) => {
-    await uploadFiles([file]);
-  };
-
   const createFolder = async (folderName: string) => {
     try {
         await fileService.createFolder(currentPath, folderName);
-        await fetchFiles(currentPath); // Refresh list
+        await fetchFiles(currentPath, searchQuery); // Refresh list
     } catch (err) {
         setError((err as Error).message || 'Failed to create folder.');
         console.error(err);
@@ -104,61 +131,50 @@ export const useFileBrowser = (initialPath: string = '/') => {
   };
 
   // --- Action handlers ---
-  const deleteSelectedEntries = async () => {
+  const performAction = async (action: () => Promise<void>, errorMessage: string) => {
     try {
       setIsLoading(true);
-      await fileService.deleteEntries(Array.from(selectedEntries));
-      await fetchFiles(currentPath);
+      await action();
+      await fetchFiles(currentPath, searchQuery);
     } catch(err) {
-      setError('Failed to delete items.');
+      setError(errorMessage);
       console.error(err);
+    } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const copySelectedEntries = async (destinationPath: string) => {
-    try {
-      setIsLoading(true);
-      await fileService.copyEntries(Array.from(selectedEntries), destinationPath);
-      await fetchFiles(currentPath);
-    } catch(err) {
-      setError('Failed to copy items.');
-      console.error(err);
-      setIsLoading(false);
-    }
-  };
-  
-  const moveSelectedEntries = async (destinationPath: string) => {
-    try {
-      setIsLoading(true);
-      await fileService.moveEntries(Array.from(selectedEntries), destinationPath);
-      await fetchFiles(currentPath);
-    } catch(err) {
-      setError('Failed to move items.');
-      console.error(err);
-      setIsLoading(false);
-    }
-  };
-
+  const deleteSelectedEntries = () => performAction(() => fileService.deleteEntries(Array.from(selectedEntries)), 'Failed to delete items.');
+  const copySelectedEntries = (dest: string) => performAction(() => fileService.copyEntries(Array.from(selectedEntries), dest), 'Failed to copy items.');
+  const moveSelectedEntries = (dest: string) => performAction(() => fileService.moveEntries(Array.from(selectedEntries), dest), 'Failed to move items.');
+  const renameEntry = (path: string, newName: string) => performAction(() => fileService.renameEntry(path, newName), 'Failed to rename item.');
+  const compressSelectedEntries = () => performAction(() => fileService.compressEntries(Array.from(selectedEntries), currentPath), 'Failed to compress items.');
+  const decompressEntry = (path: string) => performAction(() => fileService.decompressEntry(path), 'Failed to decompress item.');
+  const categorizeSelectedEntries = () => performAction(() => fileService.categorizeEntries(Array.from(selectedEntries), currentPath), 'Failed to categorize items.');
 
   return {
     currentPath,
-    fileEntries,
+    fileEntries: sortedFileEntries,
     isLoading,
     error,
     selectedEntries,
+    sortConfig,
+    setSortConfig,
     navigateTo,
     navigateUp,
-    uploadFile,
     uploadFiles,
     createFolder,
     downloadFolder,
-    refresh: () => fetchFiles(currentPath),
+    refresh: () => fetchFiles(currentPath, searchQuery),
     toggleSelection,
     toggleSelectAll,
     clearSelection,
     deleteSelectedEntries,
     copySelectedEntries,
     moveSelectedEntries,
+    renameEntry,
+    compressSelectedEntries,
+    decompressEntry,
+    categorizeSelectedEntries,
   };
 };

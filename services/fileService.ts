@@ -45,8 +45,14 @@ const api = {
 };
 
 export const fileService = {
-  async getFiles(path: string): Promise<FileEntry[]> {
-    const entries = await api.get<any[]>(`/api/files?path=${encodeURIComponent(path)}`);
+  async getFiles(path: string, query?: string): Promise<FileEntry[]> {
+    const url = new URL('/api/files', window.location.origin);
+    url.searchParams.set('path', path);
+    if (query) {
+      url.searchParams.set('query', query);
+    }
+    
+    const entries = await api.get<any[]>(url.toString());
     // Dates are transmitted as strings in JSON, so we need to convert them back to Date objects.
     return entries.map(entry => ({
         ...entry,
@@ -76,8 +82,6 @@ export const fileService = {
   },
   
   async downloadFolder(path: string): Promise<string[]> {
-    // A proper implementation would involve zipping the folder on the server and providing a download link.
-    // This is complex and requires extra dependencies, so we'll keep the existing alert behavior.
     alert(`Folder download initiated for "${path}". A real app would provide a zip file.`);
     console.log(`Preparing download for folder: ${path}`);
     return api.get<string[]>(`/api/download-folder-list?path=${encodeURIComponent(path)}`);
@@ -97,5 +101,21 @@ export const fileService = {
 
   async moveEntries(paths: string[], destinationPath: string): Promise<void> {
      await api.post('/api/move', { paths, destinationPath });
-  }
+  },
+
+  async renameEntry(entryPath: string, newName: string): Promise<void> {
+    await api.post('/api/rename', { entryPath, newName });
+  },
+
+  async compressEntries(paths: string[], currentPath: string): Promise<void> {
+    await api.post('/api/compress', { paths, currentPath });
+  },
+  
+  async decompressEntry(path: string): Promise<void> {
+    await api.post('/api/decompress', { path });
+  },
+
+  async categorizeEntries(paths: string[], currentPath: string): Promise<void> {
+    await api.post('/api/categorize', { paths, currentPath });
+  },
 };

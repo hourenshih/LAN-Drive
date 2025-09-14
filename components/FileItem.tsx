@@ -8,6 +8,7 @@ interface FileItemProps {
   onNavigate: (path: string) => void;
   onDownloadFolder: (path: string) => void;
   onToggleSelection: (path: string) => void;
+  onDecompress: (path: string) => void;
 }
 
 const formatBytes = (bytes: number, decimals = 2): string => {
@@ -29,8 +30,9 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDownloadFolder, onToggleSelection }) => {
+const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDownloadFolder, onToggleSelection, onDecompress }) => {
   const isFolder = entry.type === FileType.FOLDER;
+  const isZip = entry.name.toLowerCase().endsWith('.zip');
 
   const handleRowClick = () => {
     onToggleSelection(entry.path);
@@ -53,6 +55,11 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDo
       e.stopPropagation();
       onDownloadFolder(entry.path);
   };
+
+  const handleDecompress = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDecompress(entry.path);
+  }
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       e.stopPropagation();
@@ -104,6 +111,17 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onDo
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
+            </button>
+          )}
+          {!isFolder && isZip && (
+             <button
+                onClick={handleDecompress}
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                aria-label={`Decompress ${entry.name}`}
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M12 18.75v-5.25m0 0l3.75 3.75M12 13.5l-3.75 3.75M3 7.5h18M3 7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5" />
+               </svg>
             </button>
           )}
           {!isFolder && (
