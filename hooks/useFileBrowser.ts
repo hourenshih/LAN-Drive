@@ -157,7 +157,6 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
   };
   
   const decompressEntry = (path: string) => performAction(() => fileService.decompressEntry(path), 'Failed to decompress item.');
-  const categorizeSelectedEntries = () => performAction(() => fileService.categorizeEntries(Array.from(selectedEntries), currentPath), 'Failed to categorize items.');
 
   return {
     currentPath,
@@ -181,6 +180,5 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     renameEntry,
     downloadSelectedEntries,
     decompressEntry,
-    categorizeSelectedEntries,
   };
 };

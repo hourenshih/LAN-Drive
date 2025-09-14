@@ -245,36 +245,6 @@ async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
     }
 }
 
-
-async function handleCategorize(req: IncomingMessage, res: ServerResponse) {
-    const { paths, currentPath } = await readBody(req);
-    if (!paths || !Array.isArray(paths)) return errorResponse(res, 400, 'Invalid request body');
-
-    const CATEGORIES: Record<string, string[]> = {
-        'Pictures': ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'],
-        'Videos': ['mp4', 'mov', 'avi', 'mkv', 'webm'],
-        'Audio': ['mp3', 'wav', 'ogg', 'flac'],
-        'Documents': ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'],
-        'Archives': ['zip', 'rar', '7z', 'tar', 'gz'],
-    };
-
-    for (const p of paths) {
-        const ext = path.basename(p).split('.').pop()?.toLowerCase();
-        if (!ext) continue;
-
-        const category = Object.keys(CATEGORIES).find(key => CATEGORIES[key].includes(ext)) || 'Other';
-        const destDir = path.join(currentPath, category);
-        
-        await fs.mkdir(getSafePath(destDir), { recursive: true });
-        
-        const sourcePath = getSafePath(p);
-        const destPath = getSafePath(path.join(destDir, path.basename(p)));
-        await fs.rename(sourcePath, destPath);
-    }
-    res.statusCode = 204;
-    res.end();
-}
-
 async function handleDownloadFile(url: URL, res: ServerResponse) {
     const filePath = url.searchParams.get('path');
     if (!filePath) {
@@ -340,7 +310,6 @@ export function fsPlugin(): Plugin {
                         case '/api/move': return await handleMove(req, res);
                         case '/api/rename': return await handleRename(req, res);
                         case '/api/decompress': return await handleDecompress(req, res);
-                        case '/api/categorize': return await handleCategorize(req, res);
                         case '/api/download-file': return await handleDownloadFile(url, res);
                         default:
                             errorResponse(res, 404, 'API endpoint not found.');

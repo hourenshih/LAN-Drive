@@ -38,7 +38,6 @@ const App: React.FC = () => {
     renameEntry,
     downloadSelectedEntries,
     decompressEntry,
-    categorizeSelectedEntries,
   } = useFileBrowser('/', searchQuery);
   
   const folderTreeHook = useFolderTree();
@@ -88,15 +87,6 @@ const App: React.FC = () => {
     await renameEntry(entryToRename.path, newName);
     folderTreeHook.refreshTree();
   };
-
-  const handleCategorize = () => {
-    if (window.confirm(`This will move files into category folders (Pictures, Documents, etc.). Are you sure?`)) {
-        categorizeSelectedEntries().then(() => {
-            folderTreeHook.refreshTree();
-        });
-    }
-  };
-
 
   const handleMoveCopySubmit = async (destinationPath: string) => {
     if (moveCopyOperation === 'copy') {
@@ -251,7 +241,6 @@ const App: React.FC = () => {
                   onClearSelection={clearSelection}
                   onRename={() => setIsRenameModalOpen(true)}
                   onDownload={downloadSelectedEntries}
-                  onCategorize={handleCategorize}
                 />
               ) : null}
 

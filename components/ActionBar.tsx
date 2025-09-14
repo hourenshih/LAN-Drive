@@ -8,7 +8,6 @@ interface ActionBarProps {
   onClearSelection: () => void;
   onRename: () => void;
   onDownload: () => void;
-  onCategorize: () => void;
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; className?: string; disabled?: boolean }> = ({ onClick, children, className = '', disabled = false }) => (
@@ -21,7 +20,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; c
     </button>
 );
 
-const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload, onCategorize }) => {
+const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload }) => {
   return (
     <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-3 my-4 flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-in-out">
       <div className="flex items-center space-x-4">
@@ -60,12 +59,6 @@ const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, 
                 <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           Download
-        </ActionButton>
-         <ActionButton onClick={onCategorize}>
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-             <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-           </svg>
-          Categorize
         </ActionButton>
         <button
           onClick={onDelete}

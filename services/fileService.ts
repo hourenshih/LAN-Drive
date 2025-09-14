@@ -118,8 +118,4 @@ export const fileService = {
   async decompressEntry(path: string): Promise<void> {
     await api.post('/api/decompress', { path });
   },
-
-  async categorizeEntries(paths: string[], currentPath: string): Promise<void> {
-    await api.post('/api/categorize', { paths, currentPath });
-  },
 };
