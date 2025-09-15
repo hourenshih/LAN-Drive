@@ -1,19 +1,5 @@
 import { FileType, FileEntry, TreeNodeData } from '../types';
 
-// Helper to convert a File object to a Base64 string for JSON transport
-const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-        // The result is in the format "data:mime/type;base64,THE_BASE64_STRING"
-        // We only need the part after the comma.
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-    };
-    reader.onerror = error => reject(error);
-});
-
-
 // A tiny API client to handle fetch requests and errors
 // FIX: Extracted the generic `request` function out of the `api` object literal.
 // This resolves the "Untyped function calls may not accept type arguments" error
@@ -61,13 +47,23 @@ export const fileService = {
   },
 
   async uploadFile(path: string, file: File): Promise<FileEntry> {
-    const content = await toBase64(file);
-    const newEntry = await api.post<any>('/api/upload', {
-        path,
-        fileName: file.name,
-        content,
+    const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'X-File-Path': path,
+            'X-File-Name': encodeURIComponent(file.name),
+        },
+        body: file,
     });
-     return {
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Upload failed with status ${response.status}` }));
+        throw new Error(errorData.message || 'An unknown API error occurred during upload.');
+    }
+
+    const newEntry = await response.json();
+    return {
         ...newEntry,
         lastModified: new Date(newEntry.lastModified),
     };

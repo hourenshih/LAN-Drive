@@ -2,7 +2,7 @@ import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { FileType, FileEntry, TreeNodeData } from './types';
 
 const FILES_ROOT = path.resolve(process.cwd(), 'files');
@@ -97,16 +97,48 @@ async function handleGetFiles(url: URL, res: ServerResponse) {
 }
 
 async function handleUpload(req: IncomingMessage, res: ServerResponse) {
-    const { path: dirPath, fileName, content } = await readBody(req);
+    const dirPath = req.headers['x-file-path'] as string;
+    const fileNameHeader = req.headers['x-file-name'] as string;
+
+    if (!dirPath || !fileNameHeader) {
+        return errorResponse(res, 400, 'X-File-Path and X-File-Name headers are required.');
+    }
+
+    const fileName = decodeURIComponent(fileNameHeader);
     const safePath = getSafePath(path.join(dirPath, fileName));
-    await fs.writeFile(safePath, content, 'base64');
-    
-    const dirent = {
-        name: fileName,
-        isDirectory: () => false,
-    };
-    const newEntry = await toFileEntry(dirent, dirPath);
-    jsonResponse(res, 201, newEntry);
+
+    try {
+        const writeStream = createWriteStream(safePath);
+        req.pipe(writeStream);
+
+        await new Promise<void>((resolve, reject) => {
+            writeStream.on('finish', resolve);
+            writeStream.on('error', (err) => {
+                console.error('File write stream error:', err);
+                reject(new Error('Failed to save file on server.'));
+            });
+            req.on('error', (err) => {
+                console.error('Request stream error:', err);
+                writeStream.destroy();
+                reject(new Error('File upload request failed.'));
+            });
+        });
+
+        const dirent = { name: fileName, isDirectory: () => false };
+        const newEntry = await toFileEntry(dirent, dirPath);
+        jsonResponse(res, 201, newEntry);
+    } catch (err) {
+        console.error(`Error uploading to ${safePath}:`, err);
+        // Attempt to clean up partially written file
+        try {
+            await fs.unlink(safePath);
+        } catch (cleanupErr: any) {
+            if (cleanupErr.code !== 'ENOENT') {
+                 console.error(`Failed to clean up partial file ${safePath}:`, cleanupErr);
+            }
+        }
+        errorResponse(res, 500, (err as Error).message || 'Internal server error during file upload.');
+    }
 }
 
 async function handleCreateFolder(req: IncomingMessage, res: ServerResponse) {
