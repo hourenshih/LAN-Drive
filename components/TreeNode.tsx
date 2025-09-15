@@ -39,6 +39,20 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
   };
 
   // --- Drag and Drop Handlers ---
+  const handleDragStart = (e: React.DragEvent) => {
+    // Prevent dragging the root "My Files" folder
+    if (node.path === '/') {
+        e.preventDefault();
+        return;
+    }
+    e.stopPropagation();
+    
+    // Set data in the same format as FileItem for compatibility
+    const pathsToDrag = [node.path];
+    e.dataTransfer.setData('application/json-lan-drive-paths', JSON.stringify(pathsToDrag));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+    
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -120,6 +134,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
         className={itemClasses} 
         onClick={handleSelect} 
         style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+        draggable={node.path !== '/'}
+        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
