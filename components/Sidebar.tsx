@@ -8,9 +8,10 @@ interface SidebarProps {
   // This is a bit of a prop drill, but simple enough for this app size.
   // In a larger app, context or a state management library would be better.
   folderTreeHook: ReturnType<typeof useFolderTree>; 
+  onMoveItems: (sourcePaths: string[], destinationPath: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTreeHook }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTreeHook, onMoveItems }) => {
   const { tree, isLoading, error } = folderTreeHook;
 
   return (
@@ -24,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTre
             node={tree}
             onSelectNode={onSelectNode}
             selectedPath={selectedPath}
+            onMoveItems={onMoveItems}
           />
         )}
       </nav>

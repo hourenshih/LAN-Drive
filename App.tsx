@@ -243,6 +243,7 @@ const App: React.FC = () => {
               onSelectNode={navigateTo}
               selectedPath={currentPath}
               folderTreeHook={folderTreeHook}
+              onMoveItems={handleFileMove}
             />
           </div>
 

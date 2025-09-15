@@ -1,6 +1,4 @@
-
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 // FIX: Import FileType to use its enum members for type safety.
 import { TreeNodeData, FileType } from '../types';
 import Icon from './Icon';
@@ -9,14 +7,27 @@ interface TreeNodeProps {
   node: TreeNodeData;
   onSelectNode: (path: string) => void;
   selectedPath: string;
+  onMoveItems: (sourcePaths: string[], destinationPath: string) => void;
   level?: number;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, level = 0 }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, onMoveItems, level = 0 }) => {
   const [isOpen, setIsOpen] = useState(level < 1);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
+  const openTimer = useRef<number | null>(null);
 
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;
+
+  useEffect(() => {
+    // Clean up timer if component unmounts or drag leaves
+    return () => {
+        if (openTimer.current) {
+            clearTimeout(openTimer.current);
+        }
+    };
+  }, []);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -27,13 +38,93 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, l
     onSelectNode(node.path);
   };
 
-  const itemClasses = `flex items-center p-2 rounded-md cursor-pointer ${
-    isSelected ? 'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+  // --- Drag and Drop Handlers ---
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    
+    // Only highlight if the dragged data is our internal file/folder type
+    if (e.dataTransfer.types.includes('application/json-lan-drive-paths')) {
+        setIsDragOver(true);
+        // If folder is closed and has children, start a timer to open it
+        if (!isOpen && hasChildren) {
+            openTimer.current = window.setTimeout(() => {
+                setIsOpen(true);
+            }, 600); // 600ms delay before auto-opening
+        }
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragOver(false);
+      // If we leave the area, clear the auto-open timer
+      if (openTimer.current) {
+        clearTimeout(openTimer.current);
+        openTimer.current = null;
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsDragOver(false);
+    dragCounter.current = 0;
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    
+    const data = e.dataTransfer.getData('application/json-lan-drive-paths');
+    if (!data) return;
+    
+    try {
+        const sourcePaths = JSON.parse(data) as string[];
+        if (!Array.isArray(sourcePaths) || sourcePaths.length === 0) return;
+
+        // Prevent dropping a folder into itself or a child of itself
+        if (sourcePaths.some(p => node.path === p || node.path.startsWith(p + '/'))) {
+            console.warn('Cannot move a folder into itself or a descendant.');
+            return;
+        }
+        
+        onMoveItems(sourcePaths, node.path);
+    } catch (err) {
+        console.error('Failed to parse dropped data:', err);
+    }
+  };
+
+
+  const itemClasses = `flex items-center p-2 rounded-md cursor-pointer transition-colors duration-150 ${
+    isDragOver
+      ? 'bg-blue-200 dark:bg-gray-600'
+      : isSelected 
+        ? 'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white' 
+        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
   }`;
 
   return (
     <div>
-      <div className={itemClasses} onClick={handleSelect} style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}>
+      <div 
+        className={itemClasses} 
+        onClick={handleSelect} 
+        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {hasChildren ? (
           <button onClick={handleToggle} className="mr-2 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
             <svg
@@ -61,6 +152,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, l
               node={childNode}
               onSelectNode={onSelectNode}
               selectedPath={selectedPath}
+              onMoveItems={onMoveItems}
               level={level + 1}
             />
           ))}
