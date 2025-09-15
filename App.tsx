@@ -34,6 +34,7 @@ const App: React.FC = () => {
     toggleSelection,
     toggleSelectAll,
     clearSelection,
+    deleteEntries,
     deleteSelectedEntries,
     copySelectedEntries,
     moveSelectedEntries,
@@ -103,6 +104,18 @@ const App: React.FC = () => {
         });
     }
   };
+  
+  const handleDeleteNode = (path: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+        deleteEntries([path]).then(() => {
+            // If we deleted the current directory or a parent of it, navigate to a safe path
+            if (currentPath === path || currentPath.startsWith(path + '/')) {
+                navigateTo(path.substring(0, path.lastIndexOf('/')) || '/');
+            }
+            folderTreeHook.refreshTree();
+        });
+    }
+  };
 
   const handleMove = () => {
     setMoveCopyOperation('move');
@@ -113,11 +126,22 @@ const App: React.FC = () => {
     setMoveCopyOperation('copy');
     setIsMoveCopyModalOpen(true);
   };
+  
+  const handleRenameNode = async (path: string, newName: string) => {
+    await renameEntry(path, newName);
+     // If the current path was the one renamed, we need to update it.
+    if (currentPath === path) {
+        const parentPath = path.substring(0, path.lastIndexOf('/'));
+        const newPath = [parentPath, newName].join('/').replace('//', '/');
+        navigateTo(newPath);
+    }
+    folderTreeHook.refreshTree();
+  };
+
 
   const handleRename = async (newName: string) => {
     if (!entryToRename || !newName) return;
-    await renameEntry(entryToRename.path, newName);
-    folderTreeHook.refreshTree();
+    await handleRenameNode(entryToRename.path, newName);
   };
 
   const handleMoveCopySubmit = async (destinationPath: string) => {
@@ -244,6 +268,8 @@ const App: React.FC = () => {
               selectedPath={currentPath}
               folderTreeHook={folderTreeHook}
               onMoveItems={handleFileMove}
+              onRenameNode={handleRenameNode}
+              onDeleteNode={handleDeleteNode}
             />
           </div>
 

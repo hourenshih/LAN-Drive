@@ -9,9 +9,11 @@ interface SidebarProps {
   // In a larger app, context or a state management library would be better.
   folderTreeHook: ReturnType<typeof useFolderTree>; 
   onMoveItems: (sourcePaths: string[], destinationPath: string) => void;
+  onRenameNode: (path: string, newName: string) => Promise<void>;
+  onDeleteNode: (path: string, name: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTreeHook, onMoveItems }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTreeHook, onMoveItems, onRenameNode, onDeleteNode }) => {
   const { tree, isLoading, error } = folderTreeHook;
 
   return (
@@ -26,6 +28,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelectNode, selectedPath, folderTre
             onSelectNode={onSelectNode}
             selectedPath={selectedPath}
             onMoveItems={onMoveItems}
+            onRenameNode={onRenameNode}
+            onDeleteNode={onDeleteNode}
           />
         )}
       </nav>
