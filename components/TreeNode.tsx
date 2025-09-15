@@ -186,7 +186,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
       : isSelected && !isRenaming
         ? 'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white' 
         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-  }`;
+  } ${isMenuOpen ? 'z-10' : ''}`;
 
   return (
     <div>
