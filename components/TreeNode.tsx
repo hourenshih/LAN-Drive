@@ -13,7 +13,7 @@ interface TreeNodeProps {
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, level = 0 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(level < 1);
 
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;
