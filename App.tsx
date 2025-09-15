@@ -52,7 +52,7 @@ const App: React.FC = () => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounter = useRef(0);
 
-  const { addUploads, updateUploadProgress, setUploadStatus } = useContext(UploadProgressContext);
+  const { addUploads, updateUploadProgress, setUploadStatus, addAbortController } = useContext(UploadProgressContext);
   
   const entryToRename = useMemo((): FileEntry | null => {
     if (selectedEntries.size !== 1) return null;
@@ -71,7 +71,10 @@ const App: React.FC = () => {
         updateUploadProgress(upload.id, percentage);
       };
 
-      return fileService.uploadFile(currentPath, file, onProgress)
+      const { promise, abort } = fileService.uploadFile(currentPath, file, onProgress);
+      addAbortController(upload.id, abort);
+
+      return promise
         .then(() => {
           setUploadStatus(upload.id, 'done');
         })

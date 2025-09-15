@@ -1,4 +1,4 @@
-import React, { useState, useCallback, createContext } from 'react';
+import React, { useState, useRef, createContext } from 'react';
 
 export type UploadStatus = 'uploading' | 'done' | 'error';
 
@@ -15,6 +15,8 @@ interface UploadProgressContextType {
   addUploads: (files: File[]) => UploadingFile[];
   updateUploadProgress: (id: string, progress: number) => void;
   setUploadStatus: (id: string, status: UploadStatus, error?: string) => void;
+  addAbortController: (id: string, abortController: () => void) => void;
+  cancelUpload: (id: string) => void;
 }
 
 export const UploadProgressContext = createContext<UploadProgressContextType>({
@@ -22,12 +24,15 @@ export const UploadProgressContext = createContext<UploadProgressContextType>({
   addUploads: () => [],
   updateUploadProgress: () => {},
   setUploadStatus: () => {},
+  addAbortController: () => {},
+  cancelUpload: () => {},
 });
 
 let nextId = 0;
 
 export const UploadProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [uploads, setUploads] = useState<UploadingFile[]>([]);
+    const abortControllersRef = useRef<Map<string, () => void>>(new Map());
     
     const addUploads = (files: File[]): UploadingFile[] => {
         // Before adding new uploads, clear out any still-lingering finished ones
@@ -45,6 +50,18 @@ export const UploadProgressProvider: React.FC<{ children: React.ReactNode }> = (
         return newUploads;
     };
 
+    const addAbortController = (id: string, abortController: () => void) => {
+        abortControllersRef.current.set(id, abortController);
+    };
+
+    const cancelUpload = (id: string) => {
+        const controller = abortControllersRef.current.get(id);
+        if (controller) {
+            controller();
+            abortControllersRef.current.delete(id);
+        }
+    };
+
     const updateUploadProgress = (id: string, progress: number) => {
         setUploads(prev => 
             prev.map(u => (u.id === id ? { ...u, progress } : u))
@@ -58,6 +75,7 @@ export const UploadProgressProvider: React.FC<{ children: React.ReactNode }> = (
         
         // Automatically clear this upload after 5 seconds if it is done or has an error
         if (status === 'done' || status === 'error') {
+            abortControllersRef.current.delete(id); // Clean up controller if it exists
             setTimeout(() => {
                 setUploads(prev => prev.filter(upload => upload.id !== id));
             }, 5000);
@@ -68,7 +86,9 @@ export const UploadProgressProvider: React.FC<{ children: React.ReactNode }> = (
         uploads,
         addUploads,
         updateUploadProgress,
-        setUploadStatus
+        setUploadStatus,
+        addAbortController,
+        cancelUpload,
     };
 
     return (

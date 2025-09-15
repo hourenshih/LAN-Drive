@@ -46,9 +46,10 @@ export const fileService = {
     }));
   },
 
-  uploadFile(path: string, file: File, onProgress: (percentage: number) => void): Promise<FileEntry> {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+  uploadFile(path: string, file: File, onProgress: (percentage: number) => void): { promise: Promise<FileEntry>, abort: () => void } {
+    const xhr = new XMLHttpRequest();
+    
+    const promise = new Promise<FileEntry>((resolve, reject) => {
         xhr.open('POST', '/api/upload', true);
 
         xhr.setRequestHeader('X-File-Path', path);
@@ -88,11 +89,16 @@ export const fileService = {
         };
         
         xhr.onabort = () => {
-            reject(new Error('Upload was cancelled.'));
+            reject(new Error('Upload was cancelled by the user.'));
         };
 
         xhr.send(file);
     });
+
+    return {
+        promise,
+        abort: () => xhr.abort(),
+    };
   },
 
   async createFolder(path: string, folderName: string): Promise<FileEntry> {
