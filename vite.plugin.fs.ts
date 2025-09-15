@@ -203,8 +203,26 @@ async function handleMove(req: IncomingMessage, res: ServerResponse) {
 
     await Promise.all(topLevelPaths.map(async (p: string) => {
         const sourcePath = getSafePath(p);
-        const destName = path.basename(p);
-        const destPath = getSafePath(path.join(destinationPath, destName));
+        const originalName = path.basename(p);
+        let destName = originalName;
+        let destPath = getSafePath(path.join(destinationPath, destName));
+        
+        // Handle name conflicts.
+        let i = 1;
+        while (true) {
+            try {
+                await fs.access(destPath); // Throws if path doesn't exist
+                
+                // If it exists, generate a new name
+                const extension = path.extname(originalName);
+                const baseName = path.basename(originalName, extension);
+                destName = `${baseName} (${i++})${extension}`;
+                destPath = getSafePath(path.join(destinationPath, destName));
+            } catch {
+                // Path does not exist, we can move here.
+                break;
+            }
+        }
         await fs.rename(sourcePath, destPath);
     }));
     res.statusCode = 204;
