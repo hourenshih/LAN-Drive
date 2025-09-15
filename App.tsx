@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useContext } from 'react';
 import Header from './components/Header';
 import FileList from './components/FileList';
 import Breadcrumbs from './components/Breadcrumbs';
@@ -12,6 +12,9 @@ import RenameModal from './components/RenameModal';
 import { useFileBrowser, SortKey } from './hooks/useFileBrowser';
 import { useFolderTree } from './hooks/useFolderTree';
 import { FileEntry } from './types';
+import { UploadProgressContext } from './contexts/UploadProgressContext';
+import UploadProgress from './components/UploadProgress';
+import { fileService } from './services/fileService';
 
 type MoveCopyOperation = 'move' | 'copy';
 
@@ -27,7 +30,6 @@ const App: React.FC = () => {
     setSortConfig,
     navigateTo, 
     navigateUp,
-    uploadFiles,
     createFolder,
     toggleSelection,
     toggleSelectAll,
@@ -38,6 +40,7 @@ const App: React.FC = () => {
     renameEntry,
     downloadSelectedEntries,
     decompressEntry,
+    refresh,
   } = useFileBrowser('/', searchQuery);
   
   const folderTreeHook = useFolderTree();
@@ -48,6 +51,8 @@ const App: React.FC = () => {
   
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounter = useRef(0);
+
+  const { addUploads, updateUploadProgress, setUploadStatus } = useContext(UploadProgressContext);
   
   const entryToRename = useMemo((): FileEntry | null => {
     if (selectedEntries.size !== 1) return null;
@@ -56,7 +61,30 @@ const App: React.FC = () => {
   }, [selectedEntries, fileEntries]);
 
   const handleUpload = async (files: File[]) => {
-    await uploadFiles(files);
+    if (files.length === 0) return;
+
+    const newUploads = addUploads(files);
+
+    const uploadPromises = newUploads.map((upload, index) => {
+      const file = files[index];
+      const onProgress = (percentage: number) => {
+        updateUploadProgress(upload.id, percentage);
+      };
+
+      return fileService.uploadFile(currentPath, file, onProgress)
+        .then(() => {
+          setUploadStatus(upload.id, 'done');
+        })
+        .catch((err) => {
+          console.error(err);
+          setUploadStatus(upload.id, 'error', (err as Error).message || 'Upload failed');
+        });
+    });
+
+    await Promise.allSettled(uploadPromises);
+
+    refresh();
+    folderTreeHook.refreshTree();
   };
 
   const handleCreateFolder = async (folderName: string) => {
@@ -163,8 +191,7 @@ const App: React.FC = () => {
     }
 
     if (files.length > 0) {
-        await uploadFiles(files);
-        folderTreeHook.refreshTree();
+        await handleUpload(files);
     }
   };
 
@@ -287,6 +314,7 @@ const App: React.FC = () => {
         onClose={() => setIsRenameModalOpen(false)}
         onSubmit={handleRename}
       />
+      <UploadProgress />
     </div>
   );
 };

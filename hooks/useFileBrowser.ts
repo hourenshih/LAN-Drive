@@ -69,20 +69,6 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     setCurrentPath(parentPath);
   };
 
-  const uploadFiles = async (files: File[]) => {
-    try {
-      setIsLoading(true);
-      const uploadPromises = files.map(file => fileService.uploadFile(currentPath, file));
-      await Promise.all(uploadPromises);
-      await fetchFiles(currentPath, searchQuery); // Refresh list
-    } catch (err) {
-      setError('Failed to upload one or more files.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const createFolder = async (folderName: string) => {
     try {
         await fileService.createFolder(currentPath, folderName);
@@ -168,7 +154,6 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     setSortConfig,
     navigateTo,
     navigateUp,
-    uploadFiles,
     createFolder,
     refresh: () => fetchFiles(currentPath, searchQuery),
     toggleSelection,

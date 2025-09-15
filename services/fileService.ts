@@ -46,27 +46,53 @@ export const fileService = {
     }));
   },
 
-  async uploadFile(path: string, file: File): Promise<FileEntry> {
-    const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-            'Content-Type': file.type || 'application/octet-stream',
-            'X-File-Path': path,
-            'X-File-Name': encodeURIComponent(file.name),
-        },
-        body: file,
+  uploadFile(path: string, file: File, onProgress: (percentage: number) => void): Promise<FileEntry> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload', true);
+
+        xhr.setRequestHeader('X-File-Path', path);
+        xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentage = Math.round((event.loaded * 100) / event.total);
+                onProgress(percentage);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const newEntry = JSON.parse(xhr.responseText);
+                    resolve({
+                        ...newEntry,
+                        lastModified: new Date(newEntry.lastModified),
+                    });
+                } catch (e) {
+                    reject(new Error('Failed to parse server response.'));
+                }
+            } else {
+                try {
+                    const errorData = JSON.parse(xhr.responseText);
+                    reject(new Error(errorData.message || `Upload failed with status ${xhr.status}`));
+                } catch (e) {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            }
+        };
+
+        xhr.onerror = () => {
+            reject(new Error('An unknown network error occurred during upload.'));
+        };
+        
+        xhr.onabort = () => {
+            reject(new Error('Upload was cancelled.'));
+        };
+
+        xhr.send(file);
     });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Upload failed with status ${response.status}` }));
-        throw new Error(errorData.message || 'An unknown API error occurred during upload.');
-    }
-
-    const newEntry = await response.json();
-    return {
-        ...newEntry,
-        lastModified: new Date(newEntry.lastModified),
-    };
   },
 
   async createFolder(path: string, folderName: string): Promise<FileEntry> {
