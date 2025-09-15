@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { FileEntry, FileType } from '../types';
 import Icon, { getIconTypeForFile } from './Icon';
 
@@ -8,6 +8,8 @@ interface FileItemProps {
   onNavigate: (path: string) => void;
   onToggleSelection: (path: string) => void;
   onDecompress: (path: string) => void;
+  selectedEntries: Set<string>;
+  onMoveItems: (sourcePaths: string[], destinationPath: string) => void;
 }
 
 const formatBytes = (bytes: number, decimals = 2): string => {
@@ -29,7 +31,9 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onToggleSelection, onDecompress }) => {
+const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onToggleSelection, onDecompress, selectedEntries, onMoveItems }) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
   const isFolder = entry.type === FileType.FOLDER;
   const isZip = entry.name.toLowerCase().endsWith('.zip');
 
@@ -58,19 +62,94 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
       e.stopPropagation();
       onToggleSelection(entry.path);
   };
+  
+  // --- Drag and Drop Handlers ---
+  const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
+    const isDraggingSelected = selectedEntries.has(entry.path);
+    const pathsToDrag = isDraggingSelected ? Array.from(selectedEntries) : [entry.path];
+    
+    e.dataTransfer.setData('application/json-lan-drive-paths', JSON.stringify(pathsToDrag));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!isFolder) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!isFolder) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isFolder) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsDragOver(false);
+    dragCounter.current = 0;
+    
+    const data = e.dataTransfer.getData('application/json-lan-drive-paths');
+    if (!data) return;
+    
+    try {
+        const sourcePaths = JSON.parse(data) as string[];
+        if (!Array.isArray(sourcePaths) || sourcePaths.length === 0) return;
+
+        // Prevent dropping a folder into itself or a child of itself
+        if (sourcePaths.some(p => entry.path === p || entry.path.startsWith(p + '/'))) {
+            console.warn('Cannot move a folder into itself or a descendant.');
+            return;
+        }
+        
+        onMoveItems(sourcePaths, entry.path);
+    } catch (err) {
+        console.error('Failed to parse dropped data:', err);
+    }
+  };
 
 
   const iconType = isFolder ? FileType.FOLDER : getIconTypeForFile(entry.name);
   
-  const rowClasses = `flex items-center p-3 space-x-4 border-l-4 ${
-    isSelected
-      ? 'bg-blue-50 dark:bg-gray-700 border-blue-500'
-      : 'border-transparent'
-  } hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer`;
+  const rowClasses = `flex items-center p-3 space-x-4 border-l-4 rounded-lg cursor-pointer transition-colors duration-150 ${
+    isDragOver
+      ? 'bg-blue-100 dark:bg-gray-600 border-blue-500'
+      : isSelected
+        ? 'bg-blue-50 dark:bg-gray-700 border-blue-500'
+        : 'border-transparent'
+  } hover:bg-gray-100 dark:hover:bg-gray-700`;
+  
   const linkClasses = "text-gray-900 dark:text-white font-medium truncate";
 
   return (
-    <div className={rowClasses} onClick={handleRowClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleRowClick()}>
+    <div 
+        className={rowClasses} 
+        onClick={handleRowClick} 
+        role="button" 
+        tabIndex={0} 
+        onKeyDown={(e) => e.key === 'Enter' && handleRowClick()}
+        draggable="true"
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+    >
       <div className="flex-shrink-0 flex items-center">
         <input
             type="checkbox"

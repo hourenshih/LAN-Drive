@@ -37,6 +37,7 @@ const App: React.FC = () => {
     deleteSelectedEntries,
     copySelectedEntries,
     moveSelectedEntries,
+    moveEntries,
     renameEntry,
     downloadSelectedEntries,
     decompressEntry,
@@ -128,6 +129,11 @@ const App: React.FC = () => {
     folderTreeHook.refreshTree();
     setIsMoveCopyModalOpen(false);
   };
+  
+  const handleFileMove = async (sourcePaths: string[], destinationPath: string) => {
+    await moveEntries(sourcePaths, destinationPath);
+    folderTreeHook.refreshTree();
+  };
 
   const handleSortChange = (key: SortKey) => {
     setSortConfig(prevConfig => ({
@@ -157,6 +163,11 @@ const App: React.FC = () => {
     e.stopPropagation();
     setIsDraggingOver(false);
     dragCounter.current = 0;
+    
+    // Check if we are dropping internal files
+    if (e.dataTransfer.types.includes('application/json-lan-drive-paths')) {
+        return;
+    }
 
     const items = e.dataTransfer.items;
     if (!items || items.length === 0) return;
@@ -207,7 +218,7 @@ const App: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current++;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0 && !e.dataTransfer.types.includes('application/json-lan-drive-paths')) {
         setIsDraggingOver(true);
     }
   };
@@ -291,6 +302,7 @@ const App: React.FC = () => {
                 onToggleSelectAll={toggleSelectAll}
                 onSortChange={handleSortChange}
                 onDecompress={decompressEntry}
+                onMoveItems={handleFileMove}
               />
             </div>
           </main>

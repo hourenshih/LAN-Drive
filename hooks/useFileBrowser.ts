@@ -121,7 +121,8 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
 
   const deleteSelectedEntries = () => performAction(() => fileService.deleteEntries(Array.from(selectedEntries)), 'Failed to delete items.');
   const copySelectedEntries = (dest: string) => performAction(() => fileService.copyEntries(Array.from(selectedEntries), dest), 'Failed to copy items.');
-  const moveSelectedEntries = (dest: string) => performAction(() => fileService.moveEntries(Array.from(selectedEntries), dest), 'Failed to move items.');
+  const moveEntries = (paths: string[], dest: string) => performAction(() => fileService.moveEntries(paths, dest), 'Failed to move items.');
+  const moveSelectedEntries = (dest: string) => moveEntries(Array.from(selectedEntries), dest);
   const renameEntry = (path: string, newName: string) => performAction(() => fileService.renameEntry(path, newName), 'Failed to rename item.');
   
   const downloadSelectedEntries = () => {
@@ -162,6 +163,7 @@ export const useFileBrowser = (initialPath: string = '/', searchQuery: string = 
     deleteSelectedEntries,
     copySelectedEntries,
     moveSelectedEntries,
+    moveEntries,
     renameEntry,
     downloadSelectedEntries,
     decompressEntry,
