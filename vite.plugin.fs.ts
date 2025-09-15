@@ -181,6 +181,27 @@ async function handleDelete(req: IncomingMessage, res: ServerResponse) {
     res.end();
 }
 
+// Gets a new destination path that doesn't conflict with existing files.
+async function getNonConflictingPath(destinationDir: string, originalName: string): Promise<string> {
+    let destName = originalName;
+    let destPath = getSafePath(path.join(destinationDir, destName));
+    let i = 1;
+
+    while (true) {
+        try {
+            await fs.access(destPath); // Throws if path doesn't exist
+            const extension = path.extname(originalName);
+            const baseName = path.basename(originalName, extension);
+            destName = `${baseName} (${i++})${extension}`;
+            destPath = getSafePath(path.join(destinationDir, destName));
+        } catch {
+            // Path does not exist, we can use this one.
+            return destPath;
+        }
+    }
+}
+
+
 async function handleCopy(req: IncomingMessage, res: ServerResponse) {
     const { paths, destinationPath } = await readBody(req);
     if (!paths || !Array.isArray(paths) || !destinationPath) return errorResponse(res, 400, 'Invalid request body');
@@ -189,8 +210,8 @@ async function handleCopy(req: IncomingMessage, res: ServerResponse) {
     await Promise.all(topLevelPaths.map(async (p: string) => {
         const sourcePath = getSafePath(p);
         const destName = path.basename(p);
-        const destPath = getSafePath(path.join(destinationPath, destName));
-        await fs.cp(sourcePath, destPath, { recursive: true });
+        const destPath = await getNonConflictingPath(destinationPath, destName);
+        await fs.cp(sourcePath, destPath, { recursive: true, force: false }); // force: false to prevent overwrite, though getNonConflictingPath should prevent this.
     }));
     res.statusCode = 204;
     res.end();
@@ -204,26 +225,22 @@ async function handleMove(req: IncomingMessage, res: ServerResponse) {
     await Promise.all(topLevelPaths.map(async (p: string) => {
         const sourcePath = getSafePath(p);
         const originalName = path.basename(p);
-        let destName = originalName;
-        let destPath = getSafePath(path.join(destinationPath, destName));
-        
-        // Handle name conflicts.
-        let i = 1;
-        while (true) {
-            try {
-                await fs.access(destPath); // Throws if path doesn't exist
-                
-                // If it exists, generate a new name
-                const extension = path.extname(originalName);
-                const baseName = path.basename(originalName, extension);
-                destName = `${baseName} (${i++})${extension}`;
-                destPath = getSafePath(path.join(destinationPath, destName));
-            } catch {
-                // Path does not exist, we can move here.
-                break;
+        const destPath = await getNonConflictingPath(destinationPath, originalName);
+
+        try {
+            // First, try a simple rename, which is fast.
+            await fs.rename(sourcePath, destPath);
+        } catch (err: any) {
+            // If rename fails (e.g., cross-device move), fall back to copy-then-delete.
+            if (err.code === 'EXDEV' || err.code === 'EPERM') {
+                console.warn(`fs.rename failed for ${sourcePath}, falling back to copy/delete.`);
+                await fs.cp(sourcePath, destPath, { recursive: true });
+                await fs.rm(sourcePath, { recursive: true, force: true });
+            } else {
+                // For other errors, re-throw them.
+                throw err;
             }
         }
-        await fs.rename(sourcePath, destPath);
     }));
     res.statusCode = 204;
     res.end();
@@ -366,7 +383,9 @@ export function fsPlugin(): Plugin {
                     }
                 } catch (err) {
                     console.error(`API Error on ${req.url}:`, err);
-                    errorResponse(res, 500, (err as Error).message || 'Internal Server Error');
+                    if (!res.headersSent) {
+                        errorResponse(res, 500, (err as Error).message || 'Internal Server Error');
+                    }
                 }
             });
         },
