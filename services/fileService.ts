@@ -52,7 +52,7 @@ export const fileService = {
     const promise = new Promise<FileEntry>((resolve, reject) => {
         xhr.open('POST', '/api/upload', true);
 
-        xhr.setRequestHeader('X-File-Path', path);
+        xhr.setRequestHeader('X-File-Path', encodeURI(path));
         xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
         xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
 

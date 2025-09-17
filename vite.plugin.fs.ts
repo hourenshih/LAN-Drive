@@ -97,13 +97,14 @@ async function handleGetFiles(url: URL, res: ServerResponse) {
 }
 
 async function handleUpload(req: IncomingMessage, res: ServerResponse) {
-    const dirPath = req.headers['x-file-path'] as string;
+    const dirPathHeader = req.headers['x-file-path'] as string;
     const fileNameHeader = req.headers['x-file-name'] as string;
 
-    if (!dirPath || !fileNameHeader) {
+    if (!dirPathHeader || !fileNameHeader) {
         return errorResponse(res, 400, 'X-File-Path and X-File-Name headers are required.');
     }
 
+    const dirPath = decodeURI(dirPathHeader);
     const fileName = decodeURIComponent(fileNameHeader);
     const safePath = getSafePath(path.join(dirPath, fileName));
 
