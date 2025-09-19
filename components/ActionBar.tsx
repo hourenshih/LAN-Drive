@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from './Icon';
 
 interface ActionBarProps {
   count: number;
@@ -8,6 +9,8 @@ interface ActionBarProps {
   onClearSelection: () => void;
   onRename: () => void;
   onDownload: () => void;
+  onEdit: () => void;
+  isSingleTxtFileSelected: boolean;
 }
 
 const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; className?: string; disabled?: boolean }> = ({ onClick, children, className = '', disabled = false }) => (
@@ -20,7 +23,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; c
     </button>
 );
 
-const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload }) => {
+const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload, onEdit, isSingleTxtFileSelected }) => {
   return (
     <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-3 my-4 flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-in-out">
       <div className="flex items-center space-x-4">
@@ -41,6 +44,10 @@ const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, 
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L13.196 5.232z" />
           </svg>
           Rename
+        </ActionButton>
+        <ActionButton onClick={onEdit} disabled={!isSingleTxtFileSelected}>
+          <Icon type="edit" className="w-5 h-5 mr-2" />
+          Edit
         </ActionButton>
         <ActionButton onClick={onMove}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

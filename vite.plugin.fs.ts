@@ -353,6 +353,65 @@ async function handleDownloadFile(url: URL, res: ServerResponse) {
     }
 }
 
+async function handleGetFileContent(url: URL, res: ServerResponse) {
+    const filePath = url.searchParams.get('path');
+    if (!filePath) {
+        return errorResponse(res, 400, 'File path is required.');
+    }
+    try {
+        const safePath = getSafePath(filePath);
+        const stats = await fs.stat(safePath);
+        if (stats.isDirectory()) {
+            return errorResponse(res, 400, 'Cannot get content of a directory.');
+        }
+        // For Windows CJK compatibility, we explicitly read and write as UTF-8.
+        // If a file was saved with a different encoding (e.g., GBK, Shift-JIS),
+        // it might appear garbled. Saving it back will convert it to UTF-8.
+        const content = await fs.readFile(safePath, 'utf8');
+        
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end(content);
+    } catch (err: any) {
+        if (err.code === 'ENOENT') {
+            return errorResponse(res, 404, 'File not found.');
+        }
+        console.error(`Error reading file content for ${filePath}:`, err);
+        if (!res.headersSent) {
+            errorResponse(res, 500, 'Internal server error while reading file.');
+        }
+    }
+}
+
+async function handleSaveFileContent(req: IncomingMessage, res: ServerResponse) {
+    const { path: filePath, content } = await readBody(req);
+    if (!filePath || typeof content !== 'string') {
+        return errorResponse(res, 400, 'Invalid request body. "path" and "content" are required.');
+    }
+    
+    try {
+        const safePath = getSafePath(filePath);
+        const stats = await fs.stat(safePath);
+        if (stats.isDirectory()) {
+            return errorResponse(res, 400, 'Cannot save content to a directory.');
+        }
+        // For Windows CJK compatibility, we explicitly write as UTF-8.
+        await fs.writeFile(safePath, content, 'utf8');
+
+        res.statusCode = 204;
+        res.end();
+    } catch (err: any) {
+         if (err.code === 'ENOENT') {
+            return errorResponse(res, 404, 'File not found.');
+        }
+        console.error(`Error saving file content for ${filePath}:`, err);
+        if (!res.headersSent) {
+            errorResponse(res, 500, 'Internal server error while saving file.');
+        }
+    }
+}
+
+
 // --- VITE PLUGIN ---
 
 export function fsPlugin(): Plugin {
@@ -379,6 +438,8 @@ export function fsPlugin(): Plugin {
                         case '/api/rename': return await handleRename(req, res);
                         case '/api/decompress': return await handleDecompress(req, res);
                         case '/api/download-file': return await handleDownloadFile(url, res);
+                        case '/api/file-content': return await handleGetFileContent(url, res);
+                        case '/api/save-content': return await handleSaveFileContent(req, res);
                         default:
                             errorResponse(res, 404, 'API endpoint not found.');
                     }

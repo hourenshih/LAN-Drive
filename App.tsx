@@ -9,6 +9,7 @@ import DropzoneOverlay from './components/DropzoneOverlay';
 import ActionBar from './components/ActionBar';
 import MoveCopyModal from './components/MoveCopyModal';
 import RenameModal from './components/RenameModal';
+import TextEditorModal from './components/TextEditorModal';
 import { useFileBrowser, SortKey } from './hooks/useFileBrowser';
 import { useFolderTree } from './hooks/useFolderTree';
 import { FileEntry } from './types';
@@ -49,6 +50,8 @@ const App: React.FC = () => {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isTextEditorOpen, setIsTextEditorOpen] = useState(false);
+  const [fileToEditPath, setFileToEditPath] = useState<string | null>(null);
   const [moveCopyOperation, setMoveCopyOperation] = useState<MoveCopyOperation>('copy');
   
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -56,11 +59,13 @@ const App: React.FC = () => {
 
   const { addUploads, updateUploadProgress, setUploadStatus, addAbortController } = useContext(UploadProgressContext);
   
-  const entryToRename = useMemo((): FileEntry | null => {
+  const singleSelectedEntry = useMemo((): FileEntry | null => {
     if (selectedEntries.size !== 1) return null;
     const path = Array.from(selectedEntries)[0];
     return fileEntries.find(e => e.path === path) || null;
   }, [selectedEntries, fileEntries]);
+
+  const isSingleTxtFileSelected = !!(singleSelectedEntry && !singleSelectedEntry.name.endsWith('/') && singleSelectedEntry.name.toLowerCase().endsWith('.txt'));
 
   const handleUpload = async (files: File[]) => {
     if (files.length === 0) return;
@@ -140,8 +145,8 @@ const App: React.FC = () => {
 
 
   const handleRename = async (newName: string) => {
-    if (!entryToRename || !newName) return;
-    await handleRenameNode(entryToRename.path, newName);
+    if (!singleSelectedEntry || !newName) return;
+    await handleRenameNode(singleSelectedEntry.path, newName);
   };
 
   const handleMoveCopySubmit = async (destinationPath: string) => {
@@ -164,6 +169,15 @@ const App: React.FC = () => {
         key,
         direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
     }));
+  };
+  
+  const handleOpenEditor = (path: string) => {
+    setFileToEditPath(path);
+    setIsTextEditorOpen(true);
+  };
+
+  const handleEditorSave = () => {
+    refresh(); // Refresh to show updated file size/date
   };
 
   // --- Drag and Drop Handlers ---
@@ -309,6 +323,8 @@ const App: React.FC = () => {
                   onClearSelection={clearSelection}
                   onRename={() => setIsRenameModalOpen(true)}
                   onDownload={downloadSelectedEntries}
+                  onEdit={() => singleSelectedEntry && handleOpenEditor(singleSelectedEntry.path)}
+                  isSingleTxtFileSelected={isSingleTxtFileSelected}
                 />
               ) : null}
 
@@ -329,6 +345,7 @@ const App: React.FC = () => {
                 onToggleSelectAll={toggleSelectAll}
                 onSortChange={handleSortChange}
                 onDecompress={decompressEntry}
+                onEdit={handleOpenEditor}
                 onMoveItems={handleFileMove}
               />
             </div>
@@ -351,10 +368,16 @@ const App: React.FC = () => {
         isLoadingTree={folderTreeHook.isLoading}
       />
       <RenameModal
-        isOpen={isRenameModalOpen && entryToRename !== null}
-        currentName={entryToRename?.name || ''}
+        isOpen={isRenameModalOpen && singleSelectedEntry !== null}
+        currentName={singleSelectedEntry?.name || ''}
         onClose={() => setIsRenameModalOpen(false)}
         onSubmit={handleRename}
+      />
+      <TextEditorModal
+        isOpen={isTextEditorOpen}
+        onClose={() => setIsTextEditorOpen(false)}
+        onSave={handleEditorSave}
+        filePath={fileToEditPath}
       />
       <UploadProgress />
     </div>

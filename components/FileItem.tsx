@@ -8,6 +8,7 @@ interface FileItemProps {
   onNavigate: (path: string) => void;
   onToggleSelection: (path: string) => void;
   onDecompress: (path: string) => void;
+  onEdit: (path: string) => void;
   selectedEntries: Set<string>;
   onMoveItems: (sourcePaths: string[], destinationPath: string) => void;
 }
@@ -31,11 +32,12 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onToggleSelection, onDecompress, selectedEntries, onMoveItems }) => {
+const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onToggleSelection, onDecompress, onEdit, selectedEntries, onMoveItems }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounter = useRef(0);
   const isFolder = entry.type === FileType.FOLDER;
   const isZip = entry.name.toLowerCase().endsWith('.zip');
+  const isTxt = entry.name.toLowerCase().endsWith('.txt');
 
   const handleRowClick = () => {
     onToggleSelection(entry.path);
@@ -56,6 +58,11 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
   const handleDecompress = (e: React.MouseEvent) => {
       e.stopPropagation();
       onDecompress(entry.path);
+  }
+  
+   const handleEdit = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onEdit(entry.path);
   }
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,6 +181,15 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
           <p className="text-sm text-gray-500 dark:text-gray-400">{!isFolder ? formatBytes(entry.size) : '--'}</p>
         </div>
         <div className="hidden md:block md:col-span-1 text-right">
+          {!isFolder && isTxt && (
+             <button
+                onClick={handleEdit}
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                aria-label={`Edit ${entry.name}`}
+            >
+               <Icon type="edit" className="w-5 h-5" />
+            </button>
+          )}
           {!isFolder && isZip && (
              <button
                 onClick={handleDecompress}

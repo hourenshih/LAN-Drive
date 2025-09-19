@@ -146,4 +146,19 @@ export const fileService = {
   async decompressEntry(path: string): Promise<void> {
     await api.post('/api/decompress', { path });
   },
+  
+  async getFileContent(path: string): Promise<string> {
+    const url = new URL('/api/file-content', window.location.origin);
+    url.searchParams.set('path', path);
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Request failed with status ${response.status}` }));
+        throw new Error(errorData.message || 'Failed to fetch file content');
+    }
+    return response.text();
+  },
+
+  async saveFileContent(path: string, content: string): Promise<void> {
+    await api.post<void>('/api/save-content', { path, content });
+  },
 };
