@@ -109,6 +109,14 @@ export const fileService = {
     };
   },
 
+  async createFile(path: string, fileName: string): Promise<FileEntry> {
+    const newEntry = await api.post<any>('/api/create-file', { path, fileName });
+    return {
+        ...newEntry,
+        lastModified: new Date(newEntry.lastModified),
+    };
+  },
+
   downloadEntries(paths: string[]): void {
     paths.forEach((path, index) => {
       // Stagger downloads to prevent the browser from blocking multiple downloads

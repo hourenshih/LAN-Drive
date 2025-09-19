@@ -4,11 +4,12 @@ import Icon from './Icon';
 interface HeaderProps {
   onUpload: (file: File) => void;
   onCreateFolder: () => void;
+  onCreateTextFile: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, searchQuery, onSearchChange }) => {
+const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, onCreateTextFile, searchQuery, onSearchChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => {
@@ -56,6 +57,13 @@ const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, searchQuery, 
         >
           <Icon type="upload" className="w-5 h-5 mr-2" />
           Upload
+        </button>
+        <button
+          onClick={onCreateTextFile}
+          className="hidden sm:inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Icon type="new-text-file" className="w-5 h-5 mr-2" />
+          New File
         </button>
         <button
           onClick={onCreateFolder}

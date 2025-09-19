@@ -4,6 +4,7 @@ import FileList from './components/FileList';
 import Breadcrumbs from './components/Breadcrumbs';
 import Icon from './components/Icon';
 import NewFolderModal from './components/NewFolderModal';
+import NewTextFileModal from './components/NewTextFileModal';
 import Sidebar from './components/Sidebar';
 import DropzoneOverlay from './components/DropzoneOverlay';
 import ActionBar from './components/ActionBar';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   
   const folderTreeHook = useFolderTree();
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+  const [isNewTextFileModalOpen, setIsNewTextFileModalOpen] = useState(false);
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isTextEditorOpen, setIsTextEditorOpen] = useState(false);
@@ -100,6 +102,21 @@ const App: React.FC = () => {
   const handleCreateFolder = async (folderName: string) => {
      await createFolder(folderName);
      folderTreeHook.refreshTree();
+  };
+
+  const handleCreateTextFile = async (fileName: string) => {
+    try {
+        const newFile = await fileService.createFile(currentPath, fileName);
+        setIsNewTextFileModalOpen(false); // Close modal
+        refresh(); // Refresh list in background
+        // Immediately open editor for the new file
+        setFileToEditPath(newFile.path);
+        setIsTextEditorOpen(true);
+    } catch (err) {
+        // Re-throw to be caught in the modal
+        console.error("Failed to create text file:", err);
+        throw err;
+    }
   };
 
   const handleDelete = () => {
@@ -298,6 +315,7 @@ const App: React.FC = () => {
             <Header 
               onUpload={(file) => handleUpload([file])}
               onCreateFolder={() => setIsNewFolderModalOpen(true)}
+              onCreateTextFile={() => setIsNewTextFileModalOpen(true)}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
             />
@@ -356,6 +374,11 @@ const App: React.FC = () => {
         isOpen={isNewFolderModalOpen}
         onClose={() => setIsNewFolderModalOpen(false)}
         onSubmit={handleCreateFolder}
+      />
+      <NewTextFileModal
+        isOpen={isNewTextFileModalOpen}
+        onClose={() => setIsNewTextFileModalOpen(false)}
+        onSubmit={handleCreateTextFile}
       />
        <MoveCopyModal
         isOpen={isMoveCopyModalOpen}

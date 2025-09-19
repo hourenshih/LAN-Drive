@@ -411,6 +411,28 @@ async function handleSaveFileContent(req: IncomingMessage, res: ServerResponse) 
     }
 }
 
+async function handleCreateFile(req: IncomingMessage, res: ServerResponse) {
+    const { path: dirPath, fileName } = await readBody(req);
+    if (!dirPath || !fileName) {
+        return errorResponse(res, 400, '"path" and "fileName" are required.');
+    }
+
+    // Ensure .txt extension
+    const finalFileName = fileName.toLowerCase().endsWith('.txt') ? fileName : `${fileName}.txt`;
+    
+    // Use getNonConflictingPath to handle existing files
+    const safeDestPath = await getNonConflictingPath(dirPath, finalFileName);
+    const actualFileName = path.basename(safeDestPath);
+
+    // Create an empty file
+    await fs.writeFile(safeDestPath, '', 'utf8');
+
+    // Create and return the new FileEntry
+    const dirent = { name: actualFileName, isDirectory: () => false };
+    const newEntry = await toFileEntry(dirent, dirPath);
+    jsonResponse(res, 201, newEntry);
+}
+
 
 // --- VITE PLUGIN ---
 
@@ -431,6 +453,7 @@ export function fsPlugin(): Plugin {
                         case '/api/files': return await handleGetFiles(url, res);
                         case '/api/upload': return await handleUpload(req, res);
                         case '/api/create-folder': return await handleCreateFolder(req, res);
+                        case '/api/create-file': return await handleCreateFile(req, res);
                         case '/api/folder-tree': return await handleGetFolderTree(res);
                         case '/api/delete': return await handleDelete(req, res);
                         case '/api/copy': return await handleCopy(req, res);
