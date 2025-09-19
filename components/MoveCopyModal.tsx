@@ -36,15 +36,15 @@ const SelectableTreeNode: React.FC<{
                 className={`flex items-center p-2 rounded-md ${
                     isDisabled 
                         ? 'opacity-50 cursor-not-allowed' 
-                        : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
-                } ${isSelected ? 'bg-blue-100 dark:bg-gray-700' : ''}`}
+                        : 'cursor-pointer hover:bg-gray-100'
+                } ${isSelected ? 'bg-blue-100' : ''}`}
                 onClick={() => !isDisabled && onSelect(node.path)}
                 style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
             >
                 {hasChildren && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }} 
-                        className="mr-2 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                        className="mr-2 p-0.5 rounded-full hover:bg-gray-200"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -101,11 +101,11 @@ const MoveCopyModal: React.FC<MoveCopyModalProps> = ({ isOpen, operation, onClos
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-16">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md m-4" role="document">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4" role="document">
           <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Select a destination folder.</p>
-            <div className="mt-4 border rounded-lg p-2 h-64 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <p className="mt-1 text-sm text-gray-600">Select a destination folder.</p>
+            <div className="mt-4 border rounded-lg p-2 h-64 overflow-y-auto bg-gray-50">
                 {isLoadingTree && <p>Loading folders...</p>}
                 {tree && (
                     <SelectableTreeNode 
@@ -116,15 +116,15 @@ const MoveCopyModal: React.FC<MoveCopyModalProps> = ({ isOpen, operation, onClos
                     />
                 )}
             </div>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Destination: <span className="font-medium text-gray-800 dark:text-gray-200">{selectedDestination}</span>
+            <p className="mt-2 text-sm text-gray-500">
+                Destination: <span className="font-medium text-gray-800">{selectedDestination}</span>
             </p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex justify-end space-x-3 rounded-b-lg">
+          <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3 rounded-b-lg">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500"
+              className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>

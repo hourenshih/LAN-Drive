@@ -182,10 +182,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
 
   const itemClasses = `group flex items-center p-2 rounded-md cursor-pointer transition-colors duration-150 relative ${
     isDragOver
-      ? 'bg-blue-200 dark:bg-gray-600'
+      ? 'bg-blue-200'
       : isSelected && !isRenaming
-        ? 'bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white' 
-        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+        ? 'bg-blue-100 text-blue-600' 
+        : 'hover:bg-gray-100'
   } ${isMenuOpen ? 'z-10' : ''}`;
 
   return (
@@ -202,7 +202,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
         onDrop={handleDrop}
       >
         {hasChildren ? (
-          <button onClick={handleToggle} className="mr-2 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none">
+          <button onClick={handleToggle} className="mr-2 p-0.5 rounded-full hover:bg-gray-200 focus:outline-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`}
@@ -227,7 +227,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
                 onBlur={handleRenameSubmit}
                 onKeyDown={handleRenameKeyDown}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm font-medium bg-white dark:bg-gray-600 border border-blue-500 rounded px-1 py-0 w-full"
+                className="text-sm font-medium bg-white border border-blue-500 rounded px-1 py-0 w-full"
             />
         ) : (
             <span className="text-sm font-medium truncate">{node.name}</span>
@@ -237,7 +237,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
             <div className="absolute right-2 top-1/2 -translate-y-1/2" ref={menuRef}>
                 <button 
                     onClick={handleMenuToggle} 
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:opacity-100 focus:outline-none"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-200 focus:opacity-100 focus:outline-none"
                     aria-label={`Actions for ${node.name}`}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -245,10 +245,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
                     </svg>
                 </button>
                 {isMenuOpen && (
-                    <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-10">
+                    <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg border z-10">
                         <ul className="py-1">
                             <li>
-                                <button onClick={handleRenameClick} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <button onClick={handleRenameClick} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L13.196 5.232z" />
                                     </svg>
@@ -256,7 +256,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onSelectNode, selectedPath, o
                                 </button>
                             </li>
                             <li>
-                                <button onClick={handleDeleteClick} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700">
+                                <button onClick={handleDeleteClick} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>

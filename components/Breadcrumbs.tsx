@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 interface BreadcrumbsProps {
@@ -28,12 +29,12 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ path, onNavigate }) => {
             {index < crumbs.length - 1 ? (
               <button
                 onClick={() => onNavigate(crumb.path)}
-                className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+                className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600"
               >
                 {crumb.name}
               </button>
             ) : (
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{crumb.name}</span>
+              <span className="text-sm font-medium text-gray-500">{crumb.name}</span>
             )}
           </li>
         ))}

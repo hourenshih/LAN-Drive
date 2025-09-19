@@ -289,7 +289,7 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen font-sans">
+    <div className="bg-gray-50 min-h-screen font-sans">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-6">
           
@@ -320,11 +320,11 @@ const App: React.FC = () => {
               onSearchChange={setSearchQuery}
             />
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6 mt-4">
+            <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mt-4">
               <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     {currentPath !== '/' && (
-                        <button onClick={navigateUp} className="mr-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Go up a directory">
+                        <button onClick={navigateUp} className="mr-4 p-2 rounded-full hover:bg-gray-200 text-gray-600" aria-label="Go up a directory">
                             <Icon type="back" className="w-5 h-5"/>
                         </button>
                     )}

@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, onCreateTextF
 
   return (
     <header className="flex flex-col md:flex-row items-center justify-between pb-4 gap-4">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My Files</h1>
+      <h1 className="text-2xl font-bold text-gray-800">My Files</h1>
       <div className="w-full md:w-auto flex items-center space-x-2">
         <div className="relative flex-grow">
           <input
@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, onCreateTextF
             placeholder="Search in this folder..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -53,14 +53,14 @@ const Header: React.FC<HeaderProps> = ({ onUpload, onCreateFolder, onCreateTextF
         />
         <button
           onClick={handleUploadClick}
-          className="hidden sm:inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="hidden sm:inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <Icon type="upload" className="w-5 h-5 mr-2" />
           Upload
         </button>
         <button
           onClick={onCreateTextFile}
-          className="hidden sm:inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="hidden sm:inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <Icon type="new-text-file" className="w-5 h-5 mr-2" />
           New File

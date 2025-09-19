@@ -17,7 +17,7 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; c
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
       {children}
     </button>
@@ -25,18 +25,18 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; c
 
 const ActionBar: React.FC<ActionBarProps> = ({ count, onDelete, onMove, onCopy, onClearSelection, onRename, onDownload, onEdit, isSingleTxtFileSelected }) => {
   return (
-    <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-3 my-4 flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-in-out">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-4 flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-in-out">
       <div className="flex items-center space-x-4">
         <button
           onClick={onClearSelection}
-          className="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-gray-600"
+          className="p-2 rounded-full hover:bg-blue-100"
           aria-label="Clear selection"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <span className="font-medium text-blue-800 dark:text-blue-200">{count} item{count > 1 ? 's' : ''} selected</span>
+        <span className="font-medium text-blue-800">{count} item{count > 1 ? 's' : ''} selected</span>
       </div>
       <div className="flex items-center flex-wrap gap-2">
         <ActionButton onClick={onRename} disabled={count !== 1}>

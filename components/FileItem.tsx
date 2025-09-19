@@ -135,13 +135,13 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
   
   const rowClasses = `flex items-center p-3 space-x-4 border-l-4 rounded-lg cursor-pointer transition-colors duration-150 ${
     isDragOver
-      ? 'bg-blue-100 dark:bg-gray-600 border-blue-500'
+      ? 'bg-blue-100 border-blue-500'
       : isSelected
-        ? 'bg-blue-50 dark:bg-gray-700 border-blue-500'
+        ? 'bg-blue-50 border-blue-500'
         : 'border-transparent'
-  } hover:bg-gray-100 dark:hover:bg-gray-700`;
+  } hover:bg-gray-100`;
   
-  const linkClasses = "text-gray-900 dark:text-white font-medium truncate";
+  const linkClasses = "text-gray-900 font-medium truncate";
 
   return (
     <div 
@@ -175,16 +175,16 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
             </span>
         </div>
         <div className="hidden md:block md:col-span-3">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{formatDate(entry.lastModified)}</p>
+          <p className="text-sm text-gray-500">{formatDate(entry.lastModified)}</p>
         </div>
         <div className="hidden md:block md:col-span-2 text-right">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{!isFolder ? formatBytes(entry.size) : '--'}</p>
+          <p className="text-sm text-gray-500">{!isFolder ? formatBytes(entry.size) : '--'}</p>
         </div>
         <div className="hidden md:block md:col-span-1 text-right">
           {!isFolder && isTxt && (
              <button
                 onClick={handleEdit}
-                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200"
                 aria-label={`Edit ${entry.name}`}
             >
                <Icon type="edit" className="w-5 h-5" />
@@ -193,7 +193,7 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
           {!isFolder && isZip && (
              <button
                 onClick={handleDecompress}
-                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200"
                 aria-label={`Decompress ${entry.name}`}
             >
                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -204,7 +204,7 @@ const FileItem: React.FC<FileItemProps> = ({ entry, isSelected, onNavigate, onTo
           {!isFolder && (
             <button
                 onClick={handleDownload}
-                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-200"
                 aria-label={`Download ${entry.name}`}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

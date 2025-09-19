@@ -23,8 +23,8 @@ const UploadItem: React.FC<{ file: UploadingFile }> = ({ file }) => {
                     <Icon type="generic-file" className="w-5 h-5 text-gray-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={file.name}>{file.name}</p>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-600 my-1">
+                    <p className="text-sm font-medium text-gray-900 truncate" title={file.name}>{file.name}</p>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 my-1">
                         <div
                             className={`h-1.5 rounded-full ${file.status === 'error' ? 'bg-red-500' : 'bg-blue-600'}`}
                             style={{ width: `${file.progress}%`, transition: 'width 0.2s ease-in-out' }}
@@ -36,7 +36,7 @@ const UploadItem: React.FC<{ file: UploadingFile }> = ({ file }) => {
                    {file.status === 'uploading' && (
                        <button
                            onClick={() => cancelUpload(file.id)}
-                           className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 p-0.5 rounded-full focus:outline-none focus:ring-1 focus:ring-red-500"
+                           className="text-gray-500 hover:text-red-600 p-0.5 rounded-full focus:outline-none focus:ring-1 focus:ring-red-500"
                            aria-label={`Cancel upload for ${file.name}`}
                        >
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -64,11 +64,11 @@ const UploadProgress: React.FC = () => {
 
     return (
         <div className="fixed bottom-4 right-4 w-full max-w-sm z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border dark:border-gray-700">
-                <div className="p-4 border-b dark:border-gray-700">
-                    <h3 className="text-md font-semibold text-gray-800 dark:text-white">{title}</h3>
+            <div className="bg-white rounded-lg shadow-2xl border">
+                <div className="p-4 border-b">
+                    <h3 className="text-md font-semibold text-gray-800">{title}</h3>
                 </div>
-                <ul className="p-4 max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+                <ul className="p-4 max-h-64 overflow-y-auto divide-y divide-gray-200">
                     {uploads.map(file => <UploadItem key={file.id} file={file} />)}
                 </ul>
             </div>

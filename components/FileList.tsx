@@ -62,7 +62,7 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries
         <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
         </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">This folder is empty</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">This folder is empty</h3>
         <p className="mt-1 text-sm text-gray-500">Upload a file or create a new folder.</p>
       </div>
     );
@@ -70,7 +70,7 @@ const FileList: React.FC<FileListProps> = ({ entries, isLoading, selectedEntries
 
   return (
     <div className="space-y-1">
-        <div className="hidden md:grid grid-cols-10 gap-4 p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b dark:border-gray-700 items-center">
+        <div className="hidden md:grid grid-cols-10 gap-4 p-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b items-center">
             <div className="col-span-4 flex items-center">
                 <input
                     ref={selectAllCheckboxRef}
