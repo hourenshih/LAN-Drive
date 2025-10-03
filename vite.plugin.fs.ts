@@ -5,7 +5,10 @@ import fs from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { FileType, FileEntry, TreeNodeData } from './types';
 
-const FILES_ROOT = path.resolve(process.cwd(), 'files');
+// FIX: Replaced process.cwd() with a direct relative path resolution to avoid a TypeScript error
+// where `process.cwd` was not found on the `Process` type. `path.resolve('files')` correctly
+// resolves relative to the current working directory, achieving the same result.
+const FILES_ROOT = path.resolve('files');
 
 // --- UTILITY FUNCTIONS ---
 
@@ -284,7 +287,9 @@ async function handleDecompress(req: IncomingMessage, res: ServerResponse) {
 
     let unzipper: any;
     try {
-        unzipper = require('unzipper');
+        // FIX: Replaced `require` with dynamic `import()` to resolve "Cannot find name 'require'" error.
+        // This is the modern, ESM-compatible way to load a dependency dynamically.
+        unzipper = await import('unzipper');
     } catch (err) {
         unzipper = null;
     }
